@@ -1,0 +1,61 @@
+body::-webkit-scrollbar {
+    display: none;
+}
+
+.logo {
+    width: 150px;
+    height: 150px;
+    margin: auto;
+    display: block;
+    border-radius: 25%;
+}
+
+.default-image {
+    object-fit: contain; /* Ensures the image does not stretch */
+    width: 100%;         /* Keeps the image width at 100% of the container */
+    max-height: 200px;   /* Adjust the height as needed */
+    margin: auto;        /* Centers the image if it's smaller than the container */
+}
+
+.recipe-name {
+    white-space: nowrap;            /* Prevent the text from wrapping */
+    overflow: hidden !important;               /* Hide the text that exceeds the container */
+    text-overflow: ellipsis;        /* Add "..." when the text overflows */
+    display: block !important;                 /* Ensure the button behaves like a block element */
+}
+
+.recipe-name:hover {
+    white-space: normal;           /* Allow wrapping on hover */
+    overflow: visible !important;              /* Show overflow text */
+    text-overflow: unset;           /* Remove ellipsis */
+    height: auto;                   /* Allow height to grow with content */
+}
+
+.rotating-icon {
+    animation: spin 1s linear infinite; /* Smooth rotation */
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.number-overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+}
+
+.number-overlay .tag {
+    font-size: 1rem;
+    padding: 0.5em 0.8em;
+    background-color: #209cee; /* Adjust for desired color */
+    color: white;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+}
+

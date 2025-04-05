@@ -1,0 +1,17 @@
+[Unit]
+Description=Flask Cookbook
+After=network.target
+
+[Service]
+User=dietpi
+WorkingDirectory=/var/www/html/flask-cookbook
+ExecStart=/var/www/html/flask-cookbook/venv/bin/python3 /var/www/html/flask-cookbook/venv/bin/gunicorn -w 4 -b 0.0.0.0:8001 app:app
+Restart=always
+Environment=FLASK_APP=/var/www/html/flask-cookbook
+Environment=FLASK_ENV=production
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+

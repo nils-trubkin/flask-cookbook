@@ -1,0 +1,20 @@
+{% for recipe in recipes %}
+    <div class="column is-one-quarter">
+        <div class="card is-clickable" onclick="fetchPage('{{ recipe.url }}')">
+            <div class="card-image">
+                <figure class="image is-4by3" style="position: relative;">
+                    <img src="{{ url_for('static', filename=recipe.image) }}" alt="{{ recipe.name }}"
+                        class="{% if recipe.image == 'images/default.svg' %}default-image{% endif %}">
+                    <!-- Number as an overlay -->
+                    <div class="number-overlay">
+                        <span class="tag is-info is-rounded">{{ recipe.number }}</span>
+                    </div>
+                </figure>
+            </div>
+            <div class="card-content">
+                <button class="button is-link is-fullwidth is-clipped recipe-name">{{ recipe.name }}</button>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+

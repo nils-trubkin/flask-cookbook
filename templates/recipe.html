@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block name %}
+<h1 class="title has-text-white is-size-1 has-text-centered">{name}</h1>
+{% endblock %}
+
+{% block image %}
+<div class="content has-text-centered">
+    {image_tag}
+</div>
+{% endblock %}
+
+{% block ingredients %}
+<ul class="is-size-4 has-text-left mb-5">
+    {ingredients_html}
+</ul>
+{% endblock %}
+
+{% block instructions %}
+<div class="is-size-4 has-text-left">
+    {instructions_html}
+</div>
+{% endblock %}
+

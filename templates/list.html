@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Flask Cookbook</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='bulma.min.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles_home.css') }}">
+    </head
+    <body>
+        <!-- Command Examples -->
+        <div class="container mt-5">
+            <div class="columns is-centered">
+                <div class="column is-half">
+                    <div class="notification is-primary">
+                        <p class="title is-4 mb-2">Hey Cookbook...</p>
+                        <p class="subtitle is-6 mb-0">...<b>show</b>/<b>all</b> recipes</p>
+                        <p class="subtitle is-6 mb-0">...recipe <b>number</b> five</p>
+                        <p class="subtitle is-6 mb-0">...<b>scroll</b> up/down</p>
+                        <p class="subtitle is-6 mb-0">...<b>timer</b> ten</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container mt-5">
+            <!-- Recipes Section -->
+            <section class="section">
+                <h1 class="title">Recipes</h1>
+                <!-- Recipes Container -->
+                <div id="recipes" class="columns is-multiline">
+                    {% include 'search.html' %}
+                </div>
+            </section>
+        </div>
+    </body>
+</html>
+

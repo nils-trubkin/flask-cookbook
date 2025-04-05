@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Flask Cookbook</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='bulma.min.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles_home.css') }}">
+    </head>
+    <body>
+        <div class="container mt-5">
+            <!-- Main Header -->
+            <img class="logo" src="{{ url_for('static', filename='images/logo.webp') }}" alt="Flask Cookbook">
+
+            <!-- Control Panel -->
+            <section class="section">
+                <div class="columns">
+                    <!-- Scroll Controls -->
+                    <div class="column has-text-centered">
+                        <h2 class="subtitle">Scroll</h2>
+                        <div class="buttons is-centered">
+                            <!-- Scroll Up Button -->
+                            <button class="button is-primary" onclick="fetchPage('scroll_up')">
+                                <span class="icon">
+                                    <img src="{{ url_for('static', filename='images/keyboard_arrow_up.svg') }}" alt="Scroll Up">
+                                </span>
+                            </button>
+                            <!-- Scroll Down Button -->
+                            <button class="button is-primary" onclick="fetchPage('scroll_down')">
+                                <span class="icon">
+                                    <img src="{{ url_for('static', filename='images/keyboard_arrow_down.svg') }}" alt="Scroll Down">
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Page Navigation Controls -->
+                    <div class="column has-text-centered">
+                        <h2 class="subtitle">Page</h2>
+                        <div class="buttons is-centered">
+                            <!-- Previous Page Button -->
+                            <button class="button is-info" onclick="fetchPage('page_up')">
+                                <span class="icon">
+                                    <img src="{{ url_for('static', filename='images/keyboard_double_arrow_up.svg') }}" alt="Previous Page">
+                                </span>
+                            </button>
+
+                            <!-- Next Page Button -->
+                            <button class="button is-info" onclick="fetchPage('page_down')">
+                                <span class="icon">
+                                    <img src="{{ url_for('static', filename='images/keyboard_double_arrow_down.svg') }}" alt="Next Page">
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Zoom Controls -->
+                    <div class="column has-text-centered">
+                        <h2 class="subtitle">Zoom</h2>
+                        <div class="buttons is-centered">
+                            <!-- Zoom Out Button -->
+                            <button class="button is-warning" onclick="fetchPage('zoom_out')">
+                                <span class="icon">
+                                    <img src="{{ url_for('static', filename='images/zoom_out.svg') }}" alt="Zoom Out">
+                                </span>
+                            </button>
+                            <!-- Zoom In Button -->
+                            <button class="button is-warning" onclick="fetchPage('zoom_in')">
+                                <span class="icon">
+                                    <img src="{{ url_for('static', filename='images/zoom_in.svg') }}" alt="Zoom In">
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recipes Section -->
+            <section class="section">
+                <h1 class="title">Recipes</h1>
+                <!-- Search Bar -->
+                <div class="field has-addons">
+                    <div class="control is-expanded">
+                        <form id="searchForm" action="{{ url_for('find') }}" method="POST" onsubmit="searchRecipes(event)">
+                            <input id="search" class="input" type="text" name="search" placeholder="Search Recipes" onkeydown="handleEnterKey(event)">
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tag Chips -->
+                <div id="tag-chips" class="tags are-medium mt-3">
+                {% for tag in tags %}
+                    <span class="tag is-primary is-clickable" onclick="filterRecipes(this, '{{ tag }}')">{{ tag }}</span>
+                {% endfor %}
+                </div>
+
+                <!-- Recipes Container -->
+                <div id="recipes" class="columns is-multiline">
+                    {% include 'search.html' %}
+                </div>
+            </section>
+
+            <!-- Open Link Section -->
+            <section class="section">
+                <h1 class="title">Open Link</h1>
+                <div class="field has-addons">
+                    <div class="control is-expanded">
+                        <input class="input" type="text" id="url" placeholder="Enter URL">
+                    </div>
+                    <div class="control">
+                        <button class="button is-success" onclick="openLink()">Open Link</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Update Section -->
+            <section class="section">
+                <h1 class="title">Update</h1>
+                <div class="buttons">
+                    <!-- Update Flask Cookbook Button -->
+                    <button class="button is-danger" onclick="reload('git_pull')">
+                        <span class="icon">
+                            <img src="{{ url_for('static', filename='images/update_cog.svg') }}" alt="Update Flask-Cookbook">
+                        </span>
+                        <span>Update Flask-Cookbook</span>
+                    </button>
+                    <!-- Update Recipes Button -->
+                    <button class="button is-danger" onclick="reload('make_recipes')">
+                        <span class="icon">
+                            <img src="{{ url_for('static', filename='images/update.svg') }}" alt="Update Recipes">
+                        </span>
+                        <span>Update Recipes</span>
+                    </button>
+                    <!-- Reset Button -->
+                    <button class="button is-danger" onclick="reload('reset')">
+                        <span class="icon">
+                            <img src="{{ url_for('static', filename='images/reset_wrench.svg') }}" alt="Reset">
+                        </span>
+                        <span>Reset</span>
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- Alert Modal -->
+        <div id="alert-overlay" class="modal">
+            <div class="modal-background"></div>
+            <div class="modal-content">
+                <div class="box">
+                    <!-- Centered Loading Icon and Message -->
+                    <div class="is-flex is-align-items-center is-justify-content-center">
+                        <!-- Loading Icon -->
+                        <span class="icon is-medium mr-2" id="alert-loading">
+                            <img src="{{ url_for('static', filename='images/loading.svg') }}" alt="Loading" class="rotating-icon">
+                        </span>
+                        <!-- Alert Message -->
+                        <p id="alert-message"></p>
+                    </div>
+                    <!-- Close Button -->
+                    <button id="alert-close" class="button is-link is-fullwidth mt-4">Close</button>
+                </div>
+            </div>
+            <button class="modal-close is-large" aria-label="close"></button>
+        </div>
+
+        <script src="{{ url_for('static', filename='script.js') }}"></script>
+    </body>
+</html>
+

@@ -21,6 +21,8 @@ Components:
 
 ## Installation
 ```bash
+# Suggested installation directory on DietPi
+cd /var/www/html
 # Clone the repository
 git clone https://github.com/nils-trubkin/flask-cookbook.git
 cd flask-cookbook
@@ -30,12 +32,19 @@ cd flask-cookbook
 # imagemagick is highly recommended for adding images to recipes
 sudo apt install python3 python3-pip python3-venv chromium-browser imagemagick dunst libnotify-bin unclutter xdotool dbus-x11 -y
 python3 -m venv venv
+. venv/bin/activate
 pip install -r requirements.txt
-sudo cp services/*.service /etc/systemd/system/
 cp .env.d .env
+make
+
+# Edit the service files to match your flask-cookbook directory if needed
+nvim services/flaskapp.service
+nvim services/assistant.service
+sudo cp services/*.service /etc/systemd/system/
 
 # Enable kiosk web application
 sudo systemctl enable flask.service
+
 # Enable voice assistant, requires free API key, explained below
 sudo systemctl enable assistant.service
 
@@ -72,6 +81,8 @@ These will be displayed in the web application as selectable chip-style buttons
 # Tags
 dessert
 ```
+## Timer
+Voice assistant can set a timer for the recipe, the timer will be displayed in the web application (kiosk). Keyword is "timer <time>", for example: timer five
 
 ## Usage
 ```bash

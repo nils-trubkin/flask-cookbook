@@ -48,7 +48,8 @@ sudo systemctl enable flask.service
 # Enable voice assistant, requires free API key, explained below
 sudo systemctl enable assistant.service
 
-cp chromium-autostart.sh /var/lib/dietpi/dietpi-software/installed/ # kiosk autostart script
+# Kiosk autostart script
+cp chromium-autostart.sh /var/lib/dietpi/dietpi-software/installed/
 chmod +x /var/lib/dietpi/dietpi-software/installed/chromium-autostart.sh
 
 ```

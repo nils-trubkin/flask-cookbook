@@ -109,6 +109,14 @@ to clean the recipes:
 make clean
 ```
 
+## TLS
+To enable TLS, you need to generate a self-signed certificate and place it where user starting service has access to it, and update the flaskapp.service file to point to the certificate and key files, for example:
+```bash
+ExecStart=/var/www/html/flask-cookbook/venv/bin/python3 /var/www/html/flask-cookbook/venv/bin/gunicorn -w 4 -
+b 0.0.0.0:8001 app:app --certfile=certs/cert.pem --keyfile=certs/cert.key
+```
+Alternatively, you can use a reverse proxy like nginx to handle TLS termination and forward requests to the Flask app.
+
 ## License
 Apache License 2.0
 Nils Trubkin, 2025

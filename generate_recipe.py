@@ -5,7 +5,10 @@ import os
 import sqlite3
 
 
-def setup_database(db_path="recipes.db"):
+RECIPE_DB_PATH = "recipes.db"
+
+
+def setup_database(db_path=RECIPE_DB_PATH):
     """
     Create or connect to the database and ensure the `recipes` table exists.
     """
@@ -18,14 +21,27 @@ def setup_database(db_path="recipes.db"):
         name TEXT NOT NULL,
         file_path TEXT NOT NULL UNIQUE,
         tags TEXT
-    )
+    );
+
+    CREATE TABLE IF NOT EXISTS ingredients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE
+    );
+
+    CREATE TABLE IF NOT EXISTS barcodes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ingredient_id INTEGER NOT NULL,
+        barcode TEXT NOT NULL,
+        UNIQUE(ingredient_id, barcode),
+        FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
+    );
     """
     )
     conn.commit()
     conn.close()
 
 
-def update_recipe_in_database(name, file_path, tags, db_path="recipes.db"):
+def update_recipe_in_database(name, file_path, tags, db_path=RECIPE_DB_PATH):
     """
     Insert or update a recipe entry in the database.
     """
@@ -90,7 +106,13 @@ def parse_markdown(md_file):
             "*",
             "+",
         }:  # Ingredient item
-            ingredients.append(line[2:])
+            ingredient = line[1:].strip()
+            if ingredient.contains("@"):
+                tag = ingredient.split("@")[1].split(" ")[0].strip()
+                formatted_tag = tag.replace("-", " ")
+                add_ingredient_to_db(tag)
+                ingredient = ingredient.replace(f"@{tag}", formatted_tag)
+            ingredients.append(ingredient)
         elif section == "instructions" and line:  # Instruction line
             instructions.append(line)
         elif section == "tags" and line:  # Tag line
@@ -98,6 +120,23 @@ def parse_markdown(md_file):
             tags = [tag.strip().lower() for tag in tags]
 
     return name, ingredients, instructions, tags
+
+
+def add_ingredient_to_db(ingredient, db_path=RECIPE_DB_PATH):
+    """
+    Add an ingredient to the database if it contains '@'.
+    """
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # Check if the ingredient already exists
+    cursor.execute("SELECT id FROM ingredients WHERE name = ?", (ingredient,))
+    if not cursor.fetchone():
+        # Insert new ingredient
+        cursor.execute("INSERT INTO ingredients (name) VALUES (?)", (ingredient,))
+
+    conn.commit()
+    conn.close()
 
 
 def generate_html_output(md_file, output_file, template_file, image_file=None):

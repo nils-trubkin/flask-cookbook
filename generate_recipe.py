@@ -113,7 +113,7 @@ def parse_markdown(md_file):
             "+",
         }:  # Ingredient item
             ingredient = line[1:].strip()
-            if ingredient.contains("@"):
+            if "@" in ingredient:
                 tag = ingredient.split("@")[1].split(" ")[0].strip()
                 formatted_tag = tag.replace("-", " ")
                 add_ingredient_to_db(tag)

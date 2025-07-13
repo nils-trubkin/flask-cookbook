@@ -116,7 +116,7 @@ def parse_markdown(md_file):
             if "@" in ingredient:
                 tag = ingredient.split("@")[1].split(" ")[0].strip()
                 formatted_tag = tag.replace("-", " ")
-                add_ingredient_to_db(tag)
+                add_ingredient_to_db(tag.lower())
                 ingredient = ingredient.replace(f"@{tag}", formatted_tag)
             ingredients.append(ingredient)
         elif section == "instructions" and line:  # Instruction line

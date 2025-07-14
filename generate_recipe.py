@@ -21,26 +21,34 @@ def setup_database(db_path=RECIPE_DB_PATH):
         name TEXT NOT NULL,
         file_path TEXT NOT NULL UNIQUE,
         tags TEXT
-    )
+    );
     """
     )
     cursor.execute(
         """
     CREATE TABLE IF NOT EXISTS ingredients (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE
-    )
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE
+    );
     """
     )
     cursor.execute(
         """
     CREATE TABLE IF NOT EXISTS barcodes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ingredient_id INTEGER NOT NULL,
-        barcode TEXT NOT NULL,
-        UNIQUE(ingredient_id, barcode),
-        FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
+        barcode TEXT NOT NULL UNIQUE
+    );
+    """
     )
+    cursor.execute(
+        """
+    CREATE TABLE IF NOT EXISTS ingredient_barcodes (
+        ingredient_id INTEGER NOT NULL,
+        barcode_id INTEGER NOT NULL,
+        PRIMARY KEY (ingredient_id, barcode_id),
+        FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE,
+        FOREIGN KEY (barcode_id) REFERENCES barcodes(id) ON DELETE CASCADE
+    );
     """
     )
     conn.commit()

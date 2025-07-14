@@ -22,6 +22,14 @@ os.environ["BROWSER"] = "chromium-browser"
 os.environ["GIT_SSH"] = "/home/dietpi/gitssh.sh"
 os.environ["DISPLAY"] = ":0.0"
 db = SQLAlchemy(app)
+
+# Association Table
+ingredient_barcodes = db.Table(
+    'ingredient_barcodes',
+    db.Column('ingredient_id', db.Integer, db.ForeignKey('ingredients.id', ondelete="CASCADE"), primary_key=True),
+    db.Column('barcode_id', db.Integer, db.ForeignKey('barcodes.id', ondelete="CASCADE"), primary_key=True)
+)
+
 commands = []
 
 
@@ -33,6 +41,44 @@ class Recipes(db.Model):
     name = db.Column(db.String(80), nullable=False)
     file_path = db.Column(db.String(120), nullable=False)
     tags = db.Column(db.String(200))  # Comma-separated tags
+    
+
+@dataclass
+class Ingredients(db.Model):
+    """Database model for ingredients"""
+    id: int
+    name: str
+
+    __tablename__ = "ingredients"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), nullable=False, unique=True)
+
+    # Relationship to barcodes (many-to-many)
+    barcodes = db.relationship(
+        "Barcodes",
+        secondary=ingredient_barcodes,
+        back_populates="ingredients"
+    )
+
+
+@dataclass
+class Barcodes(db.Model):
+    """Database model for barcodes"""
+    id: int
+    barcode: str
+
+    __tablename__ = "barcodes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    barcode = db.Column(db.String(50), nullable=False, unique=True)
+
+    # Relationship to ingredients (many-to-many)
+    ingredients = db.relationship(
+        "Ingredients",
+        secondary=ingredient_barcodes,
+        back_populates="barcodes"
+    )
 
 
 @dataclass
@@ -290,6 +336,16 @@ def get_commands():
         return Response(json.dumps(commands.pop(0)), content_type="application/json")
     return Response(json.dumps({}), content_type="application/json")
 
+
+@app.route("/api/unlinked_ingredients", methods=["GET"])
+def get_unlinked_ingredients():
+    """Get all ingredients that are not linked to any barcodes"""
+    unlinked_ingredients = Ingredients.query.filter(
+        ~Ingredients.barcodes.any()
+    ).all()
+    ingredients_list = [{"id": ing.id, "name": ing.name} for ing in unlinked_ingredients]
+    return Response(json.dumps(ingredients_list), content_type="application/json")
+    
 
 def xdotool(cmd):
     """Run the xdotool command with the correct DISPLAY environment variable"""

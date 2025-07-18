@@ -30,8 +30,11 @@ class Receipt(Base):
     date = Column(String, nullable=False)
     time = Column(String, nullable=False)
     number = Column(String, nullable=False)
+    discount = Column(Float, nullable=False)
+    total = Column(Float, nullable=False)
+    card = Column(String, nullable=False)
     __table_args__ = (
-        UniqueConstraint("store", "date", "time", "number", name="_receipt_uc"),
+        UniqueConstraint("store", "date", "time", "number", "discount", "total", "card", name="_receipt_uc"),
     )
 
     items = relationship(

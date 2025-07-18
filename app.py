@@ -355,13 +355,20 @@ def get_ingredients():
     return Response(json.dumps(ingredients_list), content_type="application/json")
 
 
-@app.route("/api/barcodes_by_ingredient/<int:ingredient_id>", methods=["GET"])    
-def get_barcodes_by_ingredient(ingredient_id):
-    """Get all barcodes linked to a specific ingredient"""
-    ingredient = Ingredients.query.get_or_404(ingredient_id)
-    barcodes_list = [{"id": barcode.id, "barcode": barcode.barcode} for barcode in ingredient.barcodes]
-    return Response(json.dumps(barcodes_list), content_type="application/json")
+@app.route("/api/barcodes_by_ingredient_name", methods=["GET"])
+def get_barcodes_by_ingredient_name():
+    """Get all barcodes for a specific ingredient by name"""
+    ingredient_name = request.args.get("name")
+    if not ingredient_name:
+        return error("Ingredient name is required")
 
+    ingredient = Ingredients.query.filter_by(name=ingredient_name).first()
+    if not ingredient:
+        return error("Ingredient not found")
+
+    barcodes = [barcode.barcode for barcode in ingredient.barcodes]
+    return Response(json.dumps(barcodes), content_type="application/json")
+    
 
 @app.route("/api/recipes", methods=["GET"])
 def get_recipes():
@@ -369,6 +376,34 @@ def get_recipes():
     recipes = Recipes.query.all()
     recipes_list = [{"id": recipe.id, "name": recipe.name, "file_path": recipe.file_path, "tags": recipe.tags} for recipe in recipes]
     return Response(json.dumps(recipes_list), content_type="application/json")
+
+
+@app.route("/api/link_ingredient_to_barcode", methods=["POST"])
+def link_ingredient_to_barcode():
+    """Link an ingredient to a barcode"""
+    barcode = request.args.get("barcode")
+    if not barcode:
+        return error("Barcode is required")
+
+    ingredient_name = request.args.get("ingredient")
+    if not ingredient_name:
+        return error("Ingredient name is required")
+
+    ingredient = Ingredients.query.filter_by(name=ingredient_name).first()
+    if not ingredient:
+        return error("Ingredient not found")
+
+    barcode_entry = Barcodes.query.filter_by(barcode=barcode).first()
+    if not barcode_entry:
+        return error("Barcode not found")
+
+    # Link the ingredient to the barcode
+    if barcode_entry not in ingredient.barcodes:
+        ingredient.barcodes.append(barcode_entry)
+        db.session.commit()
+
+    return Response(json.dumps({"status": "success"}), content_type="application/json")
+
 
 def xdotool(cmd):
     """Run the xdotool command with the correct DISPLAY environment variable"""

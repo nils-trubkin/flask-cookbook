@@ -1,12 +1,15 @@
 import re
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 import fitz  # PyMuPDF
 from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(BASE_DIR, "recipes.db")
+
+load_dotenv()
 RECIPES_DIR = os.getenv("RECIPES_DIR")
 
 Base = declarative_base()

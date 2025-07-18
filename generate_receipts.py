@@ -68,13 +68,19 @@ def extract_metadata(text):
     date = re.search(r"Datum:\n(\d{4}-\d{2}-\d{2})", text)
     time = re.search(r"Tid:\n(\d{2}:\d{2})", text)
     number = re.search(r"Kvittonr:\n(\d+)", text)
-    if not all([store, date, time, number]):
+    discount = re.search(r"Erhållen rabatt:\n-([\d.]+)", text)
+    total = re.search(r"Total:\n([\d.]+)", text)
+    card = re.search(r"\*{12}\d{4}", text)
+    if not all([store, date, time, number, discount, total, card]):
         return None
     return {
         "store": store.group(1).strip(),
         "date": date.group(1),
         "time": time.group(1),
         "number": number.group(1),
+        "discount": float(discount.group(1)),
+        "total": float(total.group(1)),
+        "card": card.group(0).strip(),
     }
 
 

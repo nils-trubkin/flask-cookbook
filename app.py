@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, request, Response
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import OperationalError
+from generate_receipts import Receipt, StoreItem
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(BASE_DIR, "recipes.db")
@@ -353,6 +354,56 @@ def get_ingredients():
     ingredients = Ingredients.query.all()
     ingredients_list = [{"id": ing.id, "name": ing.name} for ing in ingredients]
     return Response(json.dumps(ingredients_list), content_type="application/json")
+
+
+@app.route("/api/store_items", methods=["GET"])
+def get_store_items():
+    """Get all store items"""
+    store_items = StoreItem.query.all()
+    items_list = [
+        {
+            "id": item.id,
+            "name": item.name,
+            "barcode": item.barcode,
+            "price": item.price,
+            "quantity": item.quantity,
+            "unit": item.unit,
+            "total": item.total,
+            "discount_name": item.discount_name,
+            "discount_value": item.discount_value,
+        }
+        for item in store_items
+    ]
+    return Response(json.dumps(items_list), content_type="application/json")
+
+@app.route("/api/receipts", methods=["GET"])
+def get_receipts():
+    """Get all receipts"""
+    receipts = Receipt.query.all()
+    receipts_list = [
+        {
+            "id": receipt.id,
+            "store": receipt.store,
+            "date": receipt.date,
+            "time": receipt.time,
+            "number": receipt.number,
+            "items": [
+                {
+                    "name": item.name,
+                    "barcode": item.barcode,
+                    "price": item.price,
+                    "quantity": item.quantity,
+                    "unit": item.unit,
+                    "total": item.total,
+                    "discount_name": item.discount_name,
+                    "discount_value": item.discount_value,
+                }
+                for item in receipt.items
+            ],
+        }
+        for receipt in receipts
+    ]
+    return Response(json.dumps(receipts_list), content_type="application/json")
 
 
 @app.route("/api/barcodes_by_ingredient_name", methods=["GET"])

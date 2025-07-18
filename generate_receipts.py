@@ -2,7 +2,7 @@ import re
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-import fitz  # PyMuPDF
+import pymupdf
 from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
@@ -83,7 +83,7 @@ def process_receipts(pdf_dir: str):
     session = Session()
     for pdf_path in Path(pdf_dir).glob("*.pdf"):
         print(f"📄 Processing: {pdf_path.name}")
-        doc = fitz.open(pdf_path)
+        doc = pymupdf.open(pdf_path)
         text = "\n".join(page.get_text() for page in doc)
 
         metadata = extract_metadata(text)

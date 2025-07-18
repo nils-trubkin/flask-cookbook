@@ -345,7 +345,30 @@ def get_unlinked_ingredients():
     ).all()
     ingredients_list = [{"id": ing.id, "name": ing.name} for ing in unlinked_ingredients]
     return Response(json.dumps(ingredients_list), content_type="application/json")
-    
+
+
+@app.route("/api/ingredients", methods=["GET"])
+def get_ingredients():
+    """Get all ingredients"""
+    ingredients = Ingredients.query.all()
+    ingredients_list = [{"id": ing.id, "name": ing.name} for ing in ingredients]
+    return Response(json.dumps(ingredients_list), content_type="application/json")
+
+
+@app.route("/api/barcodes_by_ingredient/<int:ingredient_id>", methods=["GET"])    
+def get_barcodes_by_ingredient(ingredient_id):
+    """Get all barcodes linked to a specific ingredient"""
+    ingredient = Ingredients.query.get_or_404(ingredient_id)
+    barcodes_list = [{"id": barcode.id, "barcode": barcode.barcode} for barcode in ingredient.barcodes]
+    return Response(json.dumps(barcodes_list), content_type="application/json")
+
+
+@app.route("/api/recipes", methods=["GET"])
+def get_recipes():
+    """Get all recipes"""
+    recipes = Recipes.query.all()
+    recipes_list = [{"id": recipe.id, "name": recipe.name, "file_path": recipe.file_path, "tags": recipe.tags} for recipe in recipes]
+    return Response(json.dumps(recipes_list), content_type="application/json")
 
 def xdotool(cmd):
     """Run the xdotool command with the correct DISPLAY environment variable"""

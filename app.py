@@ -445,6 +445,7 @@ def get_receipts():
             "number": receipt.number,
             "items": [
                 {
+                    "id": item.id,
                     "name": item.name,
                     "barcode": item.barcode,
                     "price": item.price,

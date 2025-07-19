@@ -427,6 +427,7 @@ def get_store_items():
             "total": item.total,
             "discount_name": item.discount_name,
             "discount_value": item.discount_value,
+            "receipt_id": item.receipt_id,
         }
         for item in store_items
     ]
@@ -443,6 +444,9 @@ def get_receipts():
             "date": receipt.date,
             "time": receipt.time,
             "number": receipt.number,
+            "discount": receipt.discount,
+            "total": receipt.total,
+            "card": receipt.card,
             "items": [
                 {
                     "id": item.id,
@@ -454,6 +458,7 @@ def get_receipts():
                     "total": item.total,
                     "discount_name": item.discount_name,
                     "discount_value": item.discount_value,
+                    "receipt_id": item.receipt_id,
                 }
                 for item in receipt.items
             ],

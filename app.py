@@ -394,53 +394,6 @@ def get_commands():
     return Response(json.dumps({}), content_type="application/json")
 
 
-@app.route("/api/recipes", methods=["GET"])
-def get_recipes_api():
-    """Get all recipes"""
-    recipes = Recipes.query.all()
-    recipes_list = [{"id": recipe.id, "name": recipe.name, "file_path": recipe.file_path, "tags": recipe.tags} for recipe in recipes]
-    return Response(json.dumps(recipes_list), content_type="application/json")
-
-
-@app.route("/api/unlinked_ingredients", methods=["GET"])
-def get_unlinked_ingredients():
-    """Get all ingredients that are not linked to any barcodes"""
-    unlinked_ingredients = Ingredients.query.filter(
-        ~Ingredients.barcodes.any()
-    ).all()
-    ingredients_list = [{"id": ing.id, "name": ing.name} for ing in unlinked_ingredients]
-    return Response(json.dumps(ingredients_list), content_type="application/json")
-
-
-@app.route("/api/ingredients", methods=["GET"])
-def get_ingredients():
-    """Get all ingredients"""
-    ingredients = Ingredients.query.all()
-    ingredients_list = [{"id": ing.id, "name": ing.name} for ing in ingredients]
-    return Response(json.dumps(ingredients_list), content_type="application/json")
-
-
-@app.route("/api/store_items", methods=["GET"])
-def get_store_items():
-    """Get all store items"""
-    store_items = StoreItem.query.all()
-    items_list = [
-        {
-            "id": item.id,
-            "name": item.name,
-            "barcode": item.barcode,
-            "price": item.price,
-            "quantity": item.quantity,
-            "unit": item.unit,
-            "total": item.total,
-            "discount_name": item.discount_name,
-            "discount_value": item.discount_value,
-            "receipt_id": item.receipt_id,
-        }
-        for item in store_items
-    ]
-    return Response(json.dumps(items_list), content_type="application/json")
-
 @app.route("/api/receipts", methods=["GET"])
 def get_receipts():
     """Get all receipts"""
@@ -474,6 +427,69 @@ def get_receipts():
         for receipt in receipts
     ]
     return Response(json.dumps(receipts_list), content_type="application/json")
+
+
+@app.route("/api/recipes", methods=["GET"])
+def get_recipes_api():
+    """Get all recipes"""
+    recipes = Recipes.query.all()
+    recipes_list = [{"id": recipe.id, "name": recipe.name, "file_path": recipe.file_path, "tags": recipe.tags} for recipe in recipes]
+    return Response(json.dumps(recipes_list), content_type="application/json")
+
+
+@app.route("/api/ingredients", methods=["GET"])
+def get_ingredients():
+    """Get all ingredients"""
+    ingredients = Ingredients.query.all()
+    ingredients_list = [{"id": ing.id, "name": ing.name} for ing in ingredients]
+    return Response(json.dumps(ingredients_list), content_type="application/json")
+
+
+@app.route("/api/unlinked_ingredients", methods=["GET"])
+def get_unlinked_ingredients():
+    """Get all ingredients that are not linked to any barcodes"""
+    unlinked_ingredients = Ingredients.query.filter(
+        ~Ingredients.barcodes.any()
+    ).all()
+    ingredients_list = [{"id": ing.id, "name": ing.name} for ing in unlinked_ingredients]
+    return Response(json.dumps(ingredients_list), content_type="application/json")
+
+
+@app.route("/api/ingredient_barcodes", methods=["GET"])
+def get_ingredient_barcodes():
+    """Get all barcodes for a specific ingredient"""
+    ingredient_id = request.args.get("ingredient_id")
+    if not ingredient_id:
+        return error("Ingredient ID is required")
+
+    ingredient = Ingredients.query.get(ingredient_id)
+    if not ingredient:
+        return error("Ingredient not found")
+
+    barcodes = [barcode.barcode for barcode in ingredient.barcodes]
+    return Response(json.dumps(barcodes), content_type="application/json")
+
+
+@app.route("/api/store_items", methods=["GET"])
+def get_store_items():
+    """Get all store items"""
+    store_items = StoreItem.query.all()
+    items_list = [
+        {
+            "id": item.id,
+            "name": item.name,
+            "barcode": item.barcode,
+            "price": item.price,
+            "quantity": item.quantity,
+            "unit": item.unit,
+            "total": item.total,
+            "discount_name": item.discount_name,
+            "discount_value": item.discount_value,
+            "receipt_id": item.receipt_id,
+        }
+        for item in store_items
+    ]
+    return Response(json.dumps(items_list), content_type="application/json")
 
 
 @app.route("/api/barcodes_by_ingredient_name", methods=["GET"])

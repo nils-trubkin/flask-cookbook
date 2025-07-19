@@ -394,6 +394,14 @@ def get_commands():
     return Response(json.dumps({}), content_type="application/json")
 
 
+@app.route("/api/recipes", methods=["GET"])
+def get_recipes_api():
+    """Get all recipes"""
+    recipes = Recipes.query.all()
+    recipes_list = [{"id": recipe.id, "name": recipe.name, "file_path": recipe.file_path, "tags": recipe.tags} for recipe in recipes]
+    return Response(json.dumps(recipes_list), content_type="application/json")
+
+
 @app.route("/api/unlinked_ingredients", methods=["GET"])
 def get_unlinked_ingredients():
     """Get all ingredients that are not linked to any barcodes"""

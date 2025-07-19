@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, request, Response
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import OperationalError
-from generate_receipts import Receipt, StoreItem
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(BASE_DIR, "recipes.db")
@@ -80,6 +79,63 @@ class Barcodes(db.Model):
         secondary=ingredient_barcodes,
         back_populates="barcodes"
     )
+
+@dataclass
+class Receipt(db.Model):
+    """Database model for receipts"""
+    id: int
+    store: str
+    date: str
+    time: str
+    number: str
+    discount: float
+    total: float
+    card: str
+
+    __tablename__ = "receipts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    store = db.Column(db.String(80), nullable=False)
+    date = db.Column(db.String(20), nullable=False)
+    time = db.Column(db.String(20), nullable=False)
+    number = db.Column(db.String(20), nullable=False)
+    discount = db.Column(db.Float, nullable=False)
+    total = db.Column(db.Float, nullable=False)
+    card = db.Column(db.String(20), nullable=False)
+
+    items = db.relationship("StoreItem", back_populates="receipt", cascade="all, delete-orphan")
+
+
+@dataclass
+class StoreItem(db.Model):
+    """Database model for store items"""
+    id: int
+    name: str
+    barcode: str
+    price: float
+    quantity: float
+    unit: str
+    total: float
+    discount_name: str = None
+    discount_value: float = 0.0
+
+    __tablename__ = "store_items"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), nullable=False)
+    barcode = db.Column(db.String(50), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    unit = db.Column(db.String(20), nullable=False)
+    total = db.Column(db.Float, nullable=False)
+    discount_name = db.Column(db.String(50))
+    discount_value = db.Column(db.Float, default=0.0)
+
+    receipt_id = db.Column(
+        db.Integer, db.ForeignKey("receipts.id", ondelete="CASCADE"), nullable=False
+    )
+    
+    receipt = db.relationship("Receipt", back_populates="items")
 
 
 @dataclass

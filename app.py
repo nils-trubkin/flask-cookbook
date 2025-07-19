@@ -429,12 +429,79 @@ def get_receipts():
     return Response(json.dumps(receipts_list), content_type="application/json")
 
 
+@app.route("/api/receipt", methods=["GET"])
+def get_receipt():
+    """Get a specific receipt by id"""
+    receipt_id = request.args.get("id")
+    if not receipt_id:
+        return error("Receipt ID is required")
+
+    receipt = Receipt.query.get(receipt_id)
+    if not receipt:
+        return error("Receipt not found")
+
+    receipt_data = {
+        "id": receipt.id,
+        "store": receipt.store,
+        "date": receipt.date,
+        "time": receipt.time,
+        "number": receipt.number,
+        "discount": receipt.discount,
+        "total": receipt.total,
+        "card": receipt.card,
+        "items": [
+            {
+                "id": item.id,
+                "name": item.name,
+                "barcode": item.barcode,
+                "price": item.price,
+                "quantity": item.quantity,
+                "unit": item.unit,
+                "total": item.total,
+                "discount_name": item.discount_name,
+                "discount_value": item.discount_value,
+                "receipt_id": item.receipt_id,
+            }
+            for item in receipt.items
+        ],
+    }
+    return Response(json.dumps(receipt_data), content_type="application/json")
+
+
 @app.route("/api/recipes", methods=["GET"])
-def get_recipes_api():
+def get_recipes():
     """Get all recipes"""
     recipes = Recipes.query.all()
-    recipes_list = [{"id": recipe.id, "name": recipe.name, "file_path": recipe.file_path, "tags": recipe.tags} for recipe in recipes]
+    recipes_list = [
+        {
+            "id": recipe.id,
+            "name": recipe.name,
+            "file_path": recipe.file_path,
+            "tags": recipe.tags
+        }
+        for recipe in recipes
+    ]
     return Response(json.dumps(recipes_list), content_type="application/json")
+
+
+@app.route("/api/recipe", methods=["GET"])
+def get_recipe():
+    """Get a specific recipe by id"""
+    recipe_id = request.args.get("id")
+    if not recipe_id:
+        return error("Recipe ID is required")
+
+    recipe = Recipes.query.get(recipe_id)
+    if not recipe:
+        return error("Recipe not found")
+
+    recipe_data = {
+        "id": recipe.id,
+        "name": recipe.name,
+        "file_path": recipe.file_path,
+        "tags": recipe.tags
+    }
+    return Response(json.dumps(recipe_data), content_type="application/json")
 
 
 @app.route("/api/ingredients", methods=["GET"])
@@ -455,10 +522,10 @@ def get_unlinked_ingredients():
     return Response(json.dumps(ingredients_list), content_type="application/json")
 
 
-@app.route("/api/ingredient_barcodes", methods=["GET"])
-def get_ingredient_barcodes():
-    """Get all barcodes for a specific ingredient"""
-    ingredient_id = request.args.get("ingredient_id")
+@app.route("/api/ingredient", methods=["GET"])
+def get_ingredient():
+    """Get a specific ingredient by id"""
+    ingredient_id = request.args.get("id")
     if not ingredient_id:
         return error("Ingredient ID is required")
 
@@ -466,8 +533,12 @@ def get_ingredient_barcodes():
     if not ingredient:
         return error("Ingredient not found")
 
-    barcodes = [barcode.barcode for barcode in ingredient.barcodes]
-    return Response(json.dumps(barcodes), content_type="application/json")
+    ingredient_data = {
+        "id": ingredient.id,
+        "name": ingredient.name,
+        "barcodes": [barcode.barcode for barcode in ingredient.barcodes]
+    }
+    return Response(json.dumps(ingredient_data), content_type="application/json")
 
 
 @app.route("/api/store_items", methods=["GET"])
@@ -492,6 +563,32 @@ def get_store_items():
     return Response(json.dumps(items_list), content_type="application/json")
 
 
+@app.route("/api/store_item", methods=["GET"])
+def get_store_item():
+    """Get a specific store item by id"""
+    item_id = request.args.get("id")
+    if not item_id:
+        return error("Store Item ID is required")
+
+    item = StoreItem.query.get(item_id)
+    if not item:
+        return error("Store Item not found")
+
+    item_data = {
+        "id": item.id,
+        "name": item.name,
+        "barcode": item.barcode,
+        "price": item.price,
+        "quantity": item.quantity,
+        "unit": item.unit,
+        "total": item.total,
+        "discount_name": item.discount_name,
+        "discount_value": item.discount_value,
+        "receipt_id": item.receipt_id,
+    }
+    return Response(json.dumps(item_data), content_type="application/json")
+
+
 @app.route("/api/barcodes_by_ingredient_name", methods=["GET"])
 def get_barcodes_by_ingredient_name():
     """Get all barcodes for a specific ingredient by name"""
@@ -506,14 +603,6 @@ def get_barcodes_by_ingredient_name():
     barcodes = [barcode.barcode for barcode in ingredient.barcodes]
     return Response(json.dumps(barcodes), content_type="application/json")
     
-
-@app.route("/api/recipes", methods=["GET"])
-def get_recipes():
-    """Get all recipes"""
-    recipes = Recipes.query.all()
-    recipes_list = [{"id": recipe.id, "name": recipe.name, "file_path": recipe.file_path, "tags": recipe.tags} for recipe in recipes]
-    return Response(json.dumps(recipes_list), content_type="application/json")
-
 
 @app.route("/api/link_ingredient_to_barcode", methods=["POST"])
 def link_ingredient_to_barcode():

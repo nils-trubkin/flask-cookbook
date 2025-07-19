@@ -508,7 +508,14 @@ def get_recipe():
 def get_ingredients():
     """Get all ingredients"""
     ingredients = Ingredients.query.all()
-    ingredients_list = [{"id": ing.id, "name": ing.name} for ing in ingredients]
+    ingredients_list = [
+        {
+            "id": ing.id,
+            "name": ing.name,
+            "barcodes": [barcode.barcode for barcode in ing.barcodes]
+        }
+        for ing in ingredients
+    ]
     return Response(json.dumps(ingredients_list), content_type="application/json")
 
 
@@ -518,7 +525,13 @@ def get_unlinked_ingredients():
     unlinked_ingredients = Ingredients.query.filter(
         ~Ingredients.barcodes.any()
     ).all()
-    ingredients_list = [{"id": ing.id, "name": ing.name} for ing in unlinked_ingredients]
+    ingredients_list = [
+        {
+            "id": ing.id,
+            "name": ing.name,
+        }
+        for ing in unlinked_ingredients
+    ]
     return Response(json.dumps(ingredients_list), content_type="application/json")
 
 
@@ -539,6 +552,68 @@ def get_ingredient():
         "barcodes": [barcode.barcode for barcode in ingredient.barcodes]
     }
     return Response(json.dumps(ingredient_data), content_type="application/json")
+
+
+@app.route("/api/link_ingredient", methods=["POST"])
+def link_ingredient():
+    """Link an ingredient to a barcode"""
+    ingredient_id = request.args.get("ingredient_id")
+    if not ingredient_id:
+        return error("Ingredient ID is required")
+
+    barcode = request.args.get("barcode")
+    if not barcode:
+        return error("Barcode is required")
+
+    ingredient = Ingredients.query.get(ingredient_id)
+    if not ingredient:
+        return error("Ingredient not found")
+
+    barcode_entry = Barcodes.query.filter_by(barcode=barcode).first()
+    if not barcode_entry:
+        # If the barcode does not exist, create a new one
+        barcode_entry = Barcodes(barcode=barcode)
+        db.session.add(barcode_entry)
+        db.session.commit()
+
+    # Link the ingredient to the barcode
+    if barcode_entry not in ingredient.barcodes:
+        ingredient.barcodes.append(barcode_entry)
+        db.session.commit()
+
+    return Response(json.dumps({"status": "success"}), content_type="application/json")
+
+
+@app.route("/api/unlink_ingredient", methods=["POST"])
+def unlink_ingredient():
+    """Unlink an ingredient from a barcode"""
+    ingredient_id = request.args.get("ingredient_id")
+    if not ingredient_id:
+        return error("Ingredient ID is required")
+
+    barcode = request.args.get("barcode")
+    if not barcode:
+        return error("Barcode is required")
+
+    ingredient = Ingredients.query.get(ingredient_id)
+    if not ingredient:
+        return error("Ingredient not found")
+
+    barcode_entry = Barcodes.query.filter_by(barcode=barcode).first()
+    if not barcode_entry:
+        return error("Barcode not found")
+
+    # Unlink the ingredient from the barcode
+    if barcode_entry in ingredient.barcodes:
+        ingredient.barcodes.remove(barcode_entry)
+        db.session.commit()
+
+    # If the barcode is not linked to any other ingredients, delete it
+    if not barcode_entry.ingredients:
+        db.session.delete(barcode_entry)
+        db.session.commit()
+
+    return Response(json.dumps({"status": "success"}), content_type="application/json")
 
 
 @app.route("/api/store_items", methods=["GET"])

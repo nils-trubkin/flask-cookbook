@@ -581,7 +581,13 @@ def link_ingredient():
         ingredient.barcodes.append(barcode_entry)
         db.session.commit()
 
-    return Response(json.dumps({"status": "success"}), content_type="application/json")
+    # Return the ingredient data
+    ingredient_data = {
+        "id": ingredient.id,
+        "name": ingredient.name,
+        "barcodes": [barcode.barcode for barcode in ingredient.barcodes]
+    }
+    return Response(json.dumps(ingredient_data), content_type="application/json")
 
 
 @app.route("/api/unlink_ingredient", methods=["POST"])
@@ -613,7 +619,13 @@ def unlink_ingredient():
         db.session.delete(barcode_entry)
         db.session.commit()
 
-    return Response(json.dumps({"status": "success"}), content_type="application/json")
+    # Return the ingredient data
+    ingredient_data = {
+        "id": ingredient.id,
+        "name": ingredient.name,
+        "barcodes": [barcode.barcode for barcode in ingredient.barcodes]
+    }
+    return Response(json.dumps(ingredient_data), content_type="application/json")
 
 
 @app.route("/api/store_items", methods=["GET"])

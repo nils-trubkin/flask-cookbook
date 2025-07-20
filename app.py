@@ -27,7 +27,7 @@ db = SQLAlchemy(app)
 ingredient_barcodes = db.Table(
     'ingredient_barcodes',
     db.Column('ingredient_id', db.Integer, db.ForeignKey('ingredients.id', ondelete="CASCADE"), primary_key=True),
-    db.Column('barcode_id', db.Integer, db.ForeignKey('barcodes.id', ondelete="CASCADE"), primary_key=True)
+    db.Column('barcode_id', db.Integer, db.ForeignKey('barcodes.id', ondelete="CASCADE"), primary_key=True),
     db.Column('unit', db.String(20), nullable=True)  # Optional unit for the ingredient
 )
 

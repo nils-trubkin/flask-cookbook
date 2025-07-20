@@ -672,7 +672,7 @@ def update_barcode_size():
     barcode_entry.size = size
     db.session.commit()
 
-    # Return the updated barcode data
+    return Response(json.dumps({"status": "success"}), content_type="application/json")
 
 
 @app.route("/api/store_items", methods=["GET"])

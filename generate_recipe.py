@@ -27,8 +27,9 @@ def setup_database(db_path=RECIPE_DB_PATH):
     cursor.execute(
         """
     CREATE TABLE IF NOT EXISTS ingredients (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        unit TEXT
     );
     """
     )
@@ -36,7 +37,8 @@ def setup_database(db_path=RECIPE_DB_PATH):
         """
     CREATE TABLE IF NOT EXISTS barcodes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        barcode TEXT NOT NULL UNIQUE
+        barcode TEXT NOT NULL UNIQUE,
+        size TEXT
     );
     """
     )
@@ -146,8 +148,9 @@ def add_ingredient_to_db(ingredient, db_path=RECIPE_DB_PATH):
     # Check if the ingredient already exists
     cursor.execute("SELECT id FROM ingredients WHERE name = ?", (ingredient,))
     if not cursor.fetchone():
+        unit = "u"
         # Insert new ingredient
-        cursor.execute("INSERT INTO ingredients (name) VALUES (?)", (ingredient,))
+        cursor.execute("INSERT INTO ingredients (name, unit) VALUES (?, ?)", (ingredient, unit))
 
     conn.commit()
     conn.close()

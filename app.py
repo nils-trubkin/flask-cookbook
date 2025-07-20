@@ -28,6 +28,7 @@ ingredient_barcodes = db.Table(
     'ingredient_barcodes',
     db.Column('ingredient_id', db.Integer, db.ForeignKey('ingredients.id', ondelete="CASCADE"), primary_key=True),
     db.Column('barcode_id', db.Integer, db.ForeignKey('barcodes.id', ondelete="CASCADE"), primary_key=True)
+    db.Column('unit', db.String(20), nullable=True)  # Optional unit for the ingredient
 )
 
 commands = []
@@ -48,11 +49,13 @@ class Ingredients(db.Model):
     """Database model for ingredients"""
     id: int
     name: str
+    unit: str = None # Optional unit for the ingredient
 
     __tablename__ = "ingredients"
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False, unique=True)
+    unit = db.Column(db.String(20), nullable=True)  # Optional unit for the ingredient
 
     # Relationship to barcodes (many-to-many)
     barcodes = db.relationship(
@@ -67,11 +70,13 @@ class Barcodes(db.Model):
     """Database model for barcodes"""
     id: int
     barcode: str
+    size: float = None  # Optional size for the barcode
 
     __tablename__ = "barcodes"
 
     id = db.Column(db.Integer, primary_key=True)
     barcode = db.Column(db.String(50), nullable=False, unique=True)
+    size = db.Column(db.Float, nullable=True)  # Optional size for the barcode
 
     # Relationship to ingredients (many-to-many)
     ingredients = db.relationship(
@@ -512,11 +517,23 @@ def get_ingredients():
         {
             "id": ing.id,
             "name": ing.name,
-            "barcodes": [barcode.barcode for barcode in ing.barcodes]
+            "unit": ing.unit,
+            "barcodes": { 
+                barcode.barcode : { 
+                    "name": get_barcode_name(barcode.barcode),
+                    "size": barcode.size,
+                } for barcode in ing.barcodes 
+            },
         }
         for ing in ingredients
     ]
     return Response(json.dumps(ingredients_list), content_type="application/json")
+
+
+def get_barcode_name(barcode):
+    """Get the latest store item name by barcode"""
+    store_item = StoreItem.query.filter_by(barcode=barcode).order_by(StoreItem.id.desc()).first()
+    return store_item.name if store_item else None
 
 
 @app.route("/api/unlinked_ingredients", methods=["GET"])
@@ -549,7 +566,13 @@ def get_ingredient():
     ingredient_data = {
         "id": ingredient.id,
         "name": ingredient.name,
-        "barcodes": [barcode.barcode for barcode in ingredient.barcodes]
+        "unit": ingredient.unit,
+        "barcodes": { 
+            barcode.barcode: { 
+                "name": get_barcode_name(barcode.barcode),
+                "size": barcode.size,
+            } for barcode in ingredient.barcodes 
+        },
     }
     return Response(json.dumps(ingredient_data), content_type="application/json")
 

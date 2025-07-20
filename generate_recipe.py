@@ -28,7 +28,7 @@ def setup_database(db_path=RECIPE_DB_PATH):
         """
     CREATE TABLE IF NOT EXISTS ingredients (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL UNIQUE
     );
     """
     )
@@ -38,7 +38,7 @@ def setup_database(db_path=RECIPE_DB_PATH):
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         barcode TEXT NOT NULL UNIQUE,
         size FLOAT NOT NULL DEFAULT 1.0,
-        unit TEXT NOT NULL DEFAULT 'x',
+        unit TEXT NOT NULL DEFAULT 'x'
     );
     """
     )

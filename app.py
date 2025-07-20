@@ -651,6 +651,30 @@ def unlink_ingredient():
     return Response(json.dumps(ingredient_data), content_type="application/json")
 
 
+@app.route("/api/update_barcode_size", methods=["POST"])
+def update_barcode_size():
+    """Update the size of a barcode"""
+    barcode = request.args.get("barcode")
+    if not barcode:
+        return error("Barcode is required")
+
+    size = request.args.get("size")
+    if not size:
+        return error("Size is required")
+
+    barcode_entry = Barcodes.query.filter_by(barcode=barcode).first()
+    if not barcode_entry:
+        return error("Barcode not found")
+    try:
+        size = float(size)
+    except ValueError:
+        return error("Size must be a number")
+    barcode_entry.size = size
+    db.session.commit()
+
+    # Return the updated barcode data
+
+
 @app.route("/api/store_items", methods=["GET"])
 def get_store_items():
     """Get all store items"""

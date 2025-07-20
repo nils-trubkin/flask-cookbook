@@ -29,7 +29,6 @@ def setup_database(db_path=RECIPE_DB_PATH):
     CREATE TABLE IF NOT EXISTS ingredients (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE,
-        unit TEXT
     );
     """
     )
@@ -38,7 +37,8 @@ def setup_database(db_path=RECIPE_DB_PATH):
     CREATE TABLE IF NOT EXISTS barcodes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         barcode TEXT NOT NULL UNIQUE,
-        size TEXT
+        size FLOAT NOT NULL DEFAULT 1.0,
+        unit TEXT NOT NULL DEFAULT 'x',
     );
     """
     )
@@ -138,7 +138,7 @@ def parse_markdown(md_file):
     return name, ingredients, instructions, tags
 
 
-def add_ingredient_to_db(ingredient, db_path=RECIPE_DB_PATH):
+def add_ingredient_to_db(name, db_path=RECIPE_DB_PATH):
     """
     Add an ingredient to the database if it contains '@'.
     """
@@ -146,11 +146,10 @@ def add_ingredient_to_db(ingredient, db_path=RECIPE_DB_PATH):
     cursor = conn.cursor()
 
     # Check if the ingredient already exists
-    cursor.execute("SELECT id FROM ingredients WHERE name = ?", (ingredient,))
+    cursor.execute("SELECT id FROM ingredients WHERE name = ?", (name,))
     if not cursor.fetchone():
-        unit = "u"
         # Insert new ingredient
-        cursor.execute("INSERT INTO ingredients (name, unit) VALUES (?, ?)", (ingredient, unit))
+        cursor.execute("INSERT INTO ingredients (name) VALUES (?)", (name,))
 
     conn.commit()
     conn.close()

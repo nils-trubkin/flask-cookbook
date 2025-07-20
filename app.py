@@ -49,13 +49,11 @@ class Ingredients(db.Model):
     """Database model for ingredients"""
     id: int
     name: str
-    unit: str = None # Optional unit for the ingredient
 
     __tablename__ = "ingredients"
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False, unique=True)
-    unit = db.Column(db.String(20), nullable=True)  # Optional unit for the ingredient
 
     # Relationship to barcodes (many-to-many)
     barcodes = db.relationship(
@@ -70,13 +68,15 @@ class Barcodes(db.Model):
     """Database model for barcodes"""
     id: int
     barcode: str
-    size: float = None  # Optional size for the barcode
+    size: float
+    unit: str
 
     __tablename__ = "barcodes"
 
     id = db.Column(db.Integer, primary_key=True)
     barcode = db.Column(db.String(50), nullable=False, unique=True)
-    size = db.Column(db.Float, nullable=True)  # Optional size for the barcode
+    size = db.Column(db.Float, nullable=False)
+    unit = db.Column(db.String(20), nullable=False)
 
     # Relationship to ingredients (many-to-many)
     ingredients = db.relationship(
@@ -517,11 +517,11 @@ def get_ingredients():
         {
             "id": ing.id,
             "name": ing.name,
-            "unit": ing.unit,
             "barcodes": { 
                 barcode.barcode : { 
                     "name": get_barcode_name(barcode.barcode),
                     "size": barcode.size,
+                    "unit": barcode.unit,
                 } for barcode in ing.barcodes 
             },
         }
@@ -566,11 +566,11 @@ def get_ingredient():
     ingredient_data = {
         "id": ingredient.id,
         "name": ingredient.name,
-        "unit": ingredient.unit,
         "barcodes": { 
             barcode.barcode: { 
                 "name": get_barcode_name(barcode.barcode),
                 "size": barcode.size,
+                "unit": barcode.unit,
             } for barcode in ingredient.barcodes 
         },
     }

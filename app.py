@@ -595,7 +595,7 @@ def link_ingredient():
     barcode_entry = Barcodes.query.filter_by(barcode=barcode).first()
     if not barcode_entry:
         # If the barcode does not exist, create a new one
-        barcode_entry = Barcodes(barcode=barcode)
+        barcode_entry = Barcodes(barcode=barcode, size=1.0, unit="y")
         db.session.add(barcode_entry)
         db.session.commit()
 

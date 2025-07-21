@@ -503,7 +503,7 @@ def get_recipe():
     recipe_data = {
         "id": recipe.id,
         "name": recipe.name,
-        "file_path": recipe.file_path,
+        "url": f"/recipes/{recipe.file_path.split('.')[0]}",
         "tags": recipe.tags
     }
     return Response(json.dumps(recipe_data), content_type="application/json")

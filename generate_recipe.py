@@ -20,7 +20,6 @@ def setup_database(db_path=RECIPE_DB_PATH):
     CREATE TABLE IF NOT EXISTS recipes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        -- recipe_ingredients references list of ingredients
         file_path TEXT NOT NULL UNIQUE,
         tags TEXT
     );
@@ -62,7 +61,6 @@ def setup_database(db_path=RECIPE_DB_PATH):
         recipe_id INTEGER NOT NULL,
         size REAL NOT NULL,
         unit TEXT NOT NULL,
-        UNIQUE(recipe_id),
         FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
     );
     """

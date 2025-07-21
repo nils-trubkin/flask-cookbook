@@ -638,7 +638,13 @@ def link_ingredient():
     ingredient_data = {
         "id": ingredient.id,
         "name": ingredient.name,
-        "barcodes": [barcode.barcode for barcode in ingredient.barcodes]
+        "barcodes": { 
+            barcode.barcode: { 
+                "name": get_barcode_name(barcode.barcode),
+                "size": barcode.size,
+                "unit": barcode.unit,
+            } for barcode in ingredient.barcodes 
+        },
     }
     return Response(json.dumps(ingredient_data), content_type="application/json")
 
@@ -676,7 +682,13 @@ def unlink_ingredient():
     ingredient_data = {
         "id": ingredient.id,
         "name": ingredient.name,
-        "barcodes": [barcode.barcode for barcode in ingredient.barcodes]
+        "barcodes": { 
+            barcode.barcode: { 
+                "name": get_barcode_name(barcode.barcode),
+                "size": barcode.size,
+                "unit": barcode.unit,
+            } for barcode in ingredient.barcodes 
+        },
     }
     return Response(json.dumps(ingredient_data), content_type="application/json")
 

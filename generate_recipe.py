@@ -3,6 +3,7 @@
 import sys
 import os
 import sqlite3
+import re
 
 
 RECIPE_DB_PATH = "recipes.db"
@@ -197,17 +198,15 @@ def add_recipe_ingredient_to_db(recipe_id, size, unit, db_path=RECIPE_DB_PATH):
 def parse_size_and_unit(size_str):
     """
     Parse the size and unit from a string like '1.5kg' or '2x'.
-    Returns a tuple (size, unit).
+    Returns a tuple (size: float, unit: str).
     """
-    if size_str[-1].isdigit():
-        # If it ends with a digit, assume it's a size without a unit
-        return float(size_str), "x"
+    match = re.match(r'^([0-9]*\.?[0-9]+)\s*([a-zA-Z]*)$', size_str)
+    if match:
+        size = float(match.group(1))
+        unit = match.group(2) if match.group(2) else "x"
+        return size, unit
     else:
-        # Otherwise, split into size and unit
-        for i in range(len(size_str) - 1, -1, -1):
-            if not size_str[i].isdigit() and size_str[i] != '.':
-                return float(size_str[:i + 1]), size_str[i + 1:]
-    return float(size_str), "x"  # Default case
+        raise ValueError(f"Invalid size string: {size_str}")
 
 
 def generate_html_output(md_file, output_file, template_file, image_file=None):

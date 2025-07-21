@@ -143,9 +143,10 @@ def parse_markdown(md_file):
             ingredient = line[1:].strip()
             if "@" in ingredient:
                 tag_split = ingredient.split("@")
-                tag = tag_split[1].split(" ")[0].strip().lower()
-                formatted_tag = tag.replace("-", " ")
-                ingredient_id = add_ingredient_to_db(tag)
+                tag = tag_split[1].split(" ")[0].strip()
+                tag_lower = tag.lower()
+                formatted_tag = tag_lower.replace("-", " ")
+                ingredient_id = add_ingredient_to_db(tag_lower)
                 size, unit = parse_size_and_unit(tag_split[0].strip())
                 ingredient_id_size_unit[tag] = (
                     ingredient_id,

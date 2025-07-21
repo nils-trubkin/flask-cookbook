@@ -499,7 +499,7 @@ def get_recipes():
         {
             "id": recipe.id,
             "name": recipe.name,
-            "url": f"/recipes/{recipe.file_path.split('.')[0]}",
+            "url": f"recipes/{recipe.file_path.split('.')[0]}",
             "tags": recipe.tags
         }
         for recipe in recipes
@@ -522,7 +522,7 @@ def get_recipe():
     recipe_data = {
         "id": recipe.id,
         "name": recipe.name,
-        "url": f"/recipes/{recipe.file_path.split('.')[0]}",
+        "url": f"recipes/{recipe.file_path.split('.')[0]}",
         "ingredients": [ # recipe ingredients
             {
                 "id": ing.id,

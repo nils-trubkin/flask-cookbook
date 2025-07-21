@@ -528,7 +528,8 @@ def get_recipe():
                 "id": ing.id,
                 "name": ing.name,
                 "size": ri.size,
-                "unit": ri.unit
+                "unit": ri.unit,
+                "info": get_latest_ingredient_info(ing.id)
             }
             for ri in recipe_ingredients
             for ing in Ingredients.query.filter_by(id=ri.ingredient_id).all()
@@ -537,6 +538,31 @@ def get_recipe():
         "tags": recipe.tags
     }
     return Response(json.dumps(recipe_data), content_type="application/json")
+
+
+def get_latest_ingredient_info(id):
+    """Get the latest price of each linked barcode and return the lowest price with the store item name"""
+    ingredient = Ingredients.query.get(id)
+    if not ingredient:
+        return None
+
+    barcodes = ingredient.barcodes
+    if not barcodes:
+        return None
+
+    store_items = StoreItem.query.filter(StoreItem.barcode.in_([barcode.barcode for barcode in barcodes])).all()
+    
+    if not store_items:
+        return None
+
+    # Get the store item with the lowest price
+    lowest_price_item = min(store_items, key=lambda item: item.price)
+    
+    return {
+        "name": lowest_price_item.name,
+        "price": lowest_price_item.price,
+        "barcode": lowest_price_item.barcode
+    }
 
 
 @app.route("/api/ingredients", methods=["GET"])

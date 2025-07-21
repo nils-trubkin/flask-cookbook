@@ -290,7 +290,7 @@ def parse_args():
     name, ingredient_id_size_unit, tags = generate_html_output(md_file, output_file, template_file, image_file)
 
     # Update the database with the new recipe
-    recipe_id = update_recipe_in_database(name, ingredient_size_unit, output_file.split("/")[-1], tags)
+    recipe_id = update_recipe_in_database(name, ingredient_id_size_unit, output_file.split("/")[-1], tags)
 
     # Add recipe ingredients to the database
     for ingredient, (ingredient_id, size, unit) in ingredient_id_size_unit.items():

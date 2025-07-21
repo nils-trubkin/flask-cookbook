@@ -64,6 +64,23 @@ class Ingredients(db.Model):
 
 
 @dataclass
+class RecipesIngredients(db.Model):
+    """Database model for recipe ingredients"""
+    id: int
+    recipe_id: int
+    ingredient_id: int
+    amount: float
+    unit: str
+
+    __tablename__ = "recipe_ingredients"
+
+    id = db.Column(db.Integer, primary_key=True)
+    recipe_id = db.Column(db.Integer, db.ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False)
+    size = db.Column(db.Float, nullable=False)
+    unit = db.Column(db.String(20), nullable=False)
+
+
+@dataclass
 class Barcodes(db.Model):
     """Database model for barcodes"""
     id: int
@@ -481,7 +498,7 @@ def get_recipes():
         {
             "id": recipe.id,
             "name": recipe.name,
-            "file_path": recipe.file_path,
+            "url": f"/recipes/{recipe.file_path.split('.')[0]}",
             "tags": recipe.tags
         }
         for recipe in recipes
@@ -500,10 +517,22 @@ def get_recipe():
     if not recipe:
         return error("Recipe not found")
 
+    recipe_ingredients = RecipesIngredients.query.filter_by(recipe_id=recipe.id).all()
     recipe_data = {
         "id": recipe.id,
         "name": recipe.name,
         "url": f"/recipes/{recipe.file_path.split('.')[0]}",
+        "ingredients": [ # recipe ingredients
+            {
+                "id": ing.id,
+                "name": ing.name,
+                "size": ri.size,
+                "unit": ri.unit
+            }
+            for ri in recipe_ingredients
+            for ing in Ingredients.query.filter_by(id=ri.ingredient_id).all()
+        ],
+
         "tags": recipe.tags
     }
     return Response(json.dumps(recipe_data), content_type="application/json")

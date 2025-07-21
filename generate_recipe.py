@@ -38,7 +38,7 @@ def setup_database(db_path=RECIPE_DB_PATH):
     CREATE TABLE IF NOT EXISTS barcodes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         barcode TEXT NOT NULL UNIQUE,
-        size FLOAT NOT NULL DEFAULT 1.0,
+        size REAL NOT NULL DEFAULT 1.0,
         unit TEXT NOT NULL DEFAULT 'x'
     );
     """

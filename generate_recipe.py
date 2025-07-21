@@ -59,9 +59,11 @@ def setup_database(db_path=RECIPE_DB_PATH):
         CREATE TABLE IF NOT EXISTS recipe_ingredients (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         recipe_id INTEGER NOT NULL,
+        ingredient_id INTEGER NOT NULL,
         size REAL NOT NULL,
         unit TEXT NOT NULL,
-        FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
+        FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+        FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
     );
     """
     )

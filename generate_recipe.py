@@ -115,7 +115,7 @@ def parse_markdown(md_file):
     """
     name = None
     ingredients = []
-    ingredient_size_unit = {}
+    ingredient_id_size_unit = {}
     instructions = []
     tags = []
 
@@ -145,8 +145,13 @@ def parse_markdown(md_file):
                 tag_split = ingredient.split("@")
                 tag = tag_split[1].split(" ")[0].strip().lower()
                 formatted_tag = tag.replace("-", " ")
-                add_ingredient_to_db(tag)
-                ingredient_size_unit[tag] = parse_size_and_unit(tag_split[0].strip())
+                ingredient_id = add_ingredient_to_db(tag)
+                size, unit = parse_size_and_unit(tag_split[0].strip())
+                ingredient_id_size_unit[tag] = (
+                    ingredient_id,
+                    size,
+                    unit
+                )
                 ingredient = ingredient.replace(f"@{tag}", formatted_tag)
             ingredients.append(ingredient)
         elif section == "instructions" and line:  # Instruction line
@@ -155,7 +160,7 @@ def parse_markdown(md_file):
             tags = line.split(",")
             tags = [tag.strip().lower() for tag in tags]
 
-    return name, ingredients, ingredient_size_unit, instructions, tags
+    return name, ingredients, ingredient_id_size_unit, instructions, tags
 
 
 def add_ingredient_to_db(name, db_path=RECIPE_DB_PATH):
@@ -167,15 +172,22 @@ def add_ingredient_to_db(name, db_path=RECIPE_DB_PATH):
 
     # Check if the ingredient already exists
     cursor.execute("SELECT id FROM ingredients WHERE name = ?", (name,))
-    if not cursor.fetchone():
+    result = cursor.fetchone()
+    if result:
+        ingredient_id = result[0]
+    else:
         # Insert new ingredient
-        cursor.execute("INSERT INTO ingredients (name) VALUES (?)", (name,))
+        cursor.execute(
+            "INSERT INTO ingredients (name) VALUES (?)", (name,)
+        )
+        ingredient_id = cursor.lastrowid
 
     conn.commit()
     conn.close()
+    return ingredient_id
 
 
-def add_recipe_ingredient_to_db(recipe_id, size, unit, db_path=RECIPE_DB_PATH):
+def add_recipe_ingredient_to_db(recipe_id, ingredient_id, size, unit, db_path=RECIPE_DB_PATH):
     """
     Add a recipe ingredient to the database.
     """
@@ -185,10 +197,10 @@ def add_recipe_ingredient_to_db(recipe_id, size, unit, db_path=RECIPE_DB_PATH):
     # Insert new recipe ingredient
     cursor.execute(
         """
-        INSERT INTO recipe_ingredients (recipe_id, size, unit)
-        VALUES (?, ?, ?)
+        INSERT INTO recipe_ingredients (recipe_id, ingredient_id, size, unit)
+        VALUES (?, ?, ?, ?)
         """,
-        (recipe_id, size, unit),
+        (recipe_id, ingredient_id, size, unit)
     )
 
     conn.commit()
@@ -214,7 +226,7 @@ def generate_html_output(md_file, output_file, template_file, image_file=None):
     Generate an HTML file with the desired template structure from the markdown content.
     """
     # Parse markdown content into name, ingredients, and instructions
-    name, ingredients, ingredient_size_unit, instructions, tags = parse_markdown(md_file)
+    name, ingredients, ingredient_id_size_unit, instructions, tags = parse_markdown(md_file)
 
     # Read the template
     with open(template_file, "r", encoding="utf-8") as f:
@@ -255,7 +267,7 @@ def generate_html_output(md_file, output_file, template_file, image_file=None):
             f"convert {image_file} -resize 400x static/images/{os.path.basename(image_file)}"
         )
 
-    return name, ingredient_size_unit, tags
+    return name, ingredient_id_size_unit, tags
 
 
 def parse_args():
@@ -275,14 +287,14 @@ def parse_args():
     # Ensure the database is set up
     setup_database()
 
-    name, ingredient_size_unit, tags = generate_html_output(md_file, output_file, template_file, image_file)
+    name, ingredient_id_size_unit, tags = generate_html_output(md_file, output_file, template_file, image_file)
 
     # Update the database with the new recipe
     recipe_id = update_recipe_in_database(name, ingredient_size_unit, output_file.split("/")[-1], tags)
 
     # Add recipe ingredients to the database
-    for ingredient, (size, unit) in ingredient_size_unit.items():
-        add_recipe_ingredient_to_db(recipe_id, size, unit)
+    for ingredient, (ingredient_id, size, unit) in ingredient_id_size_unit.items():
+        add_recipe_ingredient_to_db(recipe_id, ingredient_id, size, unit)
 
 
 if __name__ == "__main__":

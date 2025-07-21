@@ -69,7 +69,7 @@ class RecipesIngredients(db.Model):
     id: int
     recipe_id: int
     ingredient_id: int
-    amount: float
+    size: float
     unit: str
 
     __tablename__ = "recipe_ingredients"

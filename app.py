@@ -76,6 +76,7 @@ class RecipesIngredients(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     recipe_id = db.Column(db.Integer, db.ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False)
+    ingredient_id = db.Column(db.Integer, db.ForeignKey("ingredients.id", ondelete="CASCADE"), nullable=False)
     size = db.Column(db.Float, nullable=False)
     unit = db.Column(db.String(20), nullable=False)
 

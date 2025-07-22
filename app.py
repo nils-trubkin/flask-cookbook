@@ -572,7 +572,7 @@ def get_latest_ingredient_info(id):
     return {
         "name": lowest_price_item.name,
         "price": lowest_price_item.price,
-        "barcode": lowest_price_item.barcode
+        "barcode": lowest_price_item.barcode,
         "size": barcode.size,
         "unit": barcode.unit,
     }

@@ -80,9 +80,9 @@ def extract_metadata(text):
 
     try:
         idx = lines.index("Datum")
-        date = lines[idx + 1]
-        time = lines[idx + 2]
-        number = lines[idx + 4]
+        date = lines[idx + 7]
+        time = lines[idx + 8]
+        number = lines[idx + 10]
     except (ValueError, IndexError):
         return None  # Structure doesn't match expected format
 

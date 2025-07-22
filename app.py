@@ -554,9 +554,15 @@ def get_latest_ingredient_info(id):
     
     if not store_items:
         return None
+    
+    # Zip store items with their barcodes to get size and unit
+    store_items_info = {
+        item: Barcodes.query.filter_by(barcode=item.barcode).first()
+        for item in store_items
+    }
 
-    # Get the store item with the lowest price
-    lowest_price_item = min(store_items, key=lambda item: item.price)
+    # Get the store item with the lowest normalized price
+    lowest_price_item = get_cheapest_ingredient_normalized(store_items_info)
 
     barcode = Barcodes.query.filter_by(barcode=lowest_price_item.barcode).first()
 
@@ -570,6 +576,21 @@ def get_latest_ingredient_info(id):
         "size": barcode.size,
         "unit": barcode.unit,
     }
+
+
+def get_cheapest_ingredient_normalized(store_items_info):
+    """Get the cheapest ingredient normalized by size"""
+    if not store_items_info:
+        return None
+
+    # Normalize the prices by size converting g to kg and ml to l
+    normalized_prices = {
+        item: (item.price / (barcode.size if barcode.size > 0 else 1)) * (1000 if barcode.unit in ["g", "ml"] else 1)
+        for item, barcode in store_items_info.items()
+    }
+
+    # Get the store item with the lowest normalized price
+    return min(normalized_prices, key=normalized_prices.get)
 
 
 @app.route("/api/ingredients", methods=["GET"])

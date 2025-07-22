@@ -95,7 +95,7 @@ def extract_metadata_old(text):
         "card": card.group(1).strip(),
     }
 
-def extract_metadata_ai(text):
+def extract_metadata(text):
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
     try:
@@ -182,7 +182,7 @@ def extract_items_old(text):
         )
     return items
 
-def extract_items(text):
+def extract_items_ai(text):
     lines = text.splitlines()
     items = []
     i = 0

@@ -583,7 +583,8 @@ def get_cheapest_ingredient_normalized(store_items_info):
     if not store_items_info:
         return None
 
-    normalized_prices = {}
+    cheapest_item = None
+    cheapest_price = 0
 
     for item, barcode in store_items_info:
         if not barcode or not barcode.size:
@@ -591,12 +592,11 @@ def get_cheapest_ingredient_normalized(store_items_info):
         size = barcode.size if barcode.size > 0 else 1
         unit_multiplier = 1000 if barcode.unit in ["g", "ml"] else 1
         normalized_price = (item.price / size) * unit_multiplier
-        normalized_prices[item] = normalized_price
+        if cheapest_item is None or normalized_price < cheapest_price:
+            cheapest_item = item
+            cheapest_price = normalized_price
 
-    if not normalized_prices:
-        return None
-
-    return min(normalized_prices, key=normalized_prices.get)
+    return cheapest_item
 
 
 @app.route("/api/ingredients", methods=["GET"])

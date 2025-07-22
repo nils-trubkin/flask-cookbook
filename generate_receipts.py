@@ -149,7 +149,7 @@ def extract_items(text):
                     g["discount_name"].strip() if g["discount_name"] else None
                 ),
                 "discount_value": (
-                    float(g["discount_total"].replace(",", ".") if g["discount_total"] else None
+                    float(g["discount_total"].replace(",", ".")) if g["discount_total"] else None
                 ),
             }
         )

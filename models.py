@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 db = SQLAlchemy()
 

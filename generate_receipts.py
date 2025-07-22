@@ -95,7 +95,7 @@ def extract_metadata_old(text):
         "card": card.group(1).strip(),
     }
 
-def extract_metadata(text):
+def extract_metadata_ai(text):
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
     try:
@@ -127,6 +127,33 @@ def extract_metadata(text):
         "total": parse_amount(paid_match),
         "card": card_match.group(1) if card_match else None,
     }
+
+
+def extract_items(text):
+    pattern = re.compile(
+        r"(?P<discount>\*?)(?P<name>.*?)\s+(?P<barcode>\d{13})\s+(?P<price>[\d,]+)\s+(?P<quantity>[\d,]+)\s+(?P<unit>\S+)\s+(?P<total>[\d,]+)(?:\n|Total)(?:(?P<discount_name>.*?)\s+-(?P<discount_total>[\d,]+))?",
+        re.MULTILINE,
+    )
+    items = []
+    for match in pattern.finditer(text):
+        g = match.groupdict()
+        items.append(
+            {
+                "name": g["name"].strip(),
+                "barcode": g["barcode"],
+                "price": float(g["price"]),
+                "quantity": float(g["quantity"]),
+                "unit": g["unit"],
+                "total": float(g["total"]),
+                "discount_name": (
+                    g["discount_name"].strip() if g["discount_name"] else None
+                ),
+                "discount_value": (
+                    float(g["discount_total"]) if g["discount_total"] else None
+                ),
+            }
+        )
+    return items
 
 
 def extract_items_old(text):

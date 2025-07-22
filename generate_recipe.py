@@ -212,6 +212,7 @@ def parse_args():
     # Add recipe ingredients to the database
     for ingredient_id, size, unit in ingredient_id_size_unit.values():
         add_recipe_ingredient_to_db(recipe_id, ingredient_id, size, unit)
+    print(f"🍽️ Recipe '{name}' generated successfully and saved to {output_file}.")
 
 
 if __name__ == "__main__":

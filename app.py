@@ -500,6 +500,17 @@ def get_recipes():
             "id": recipe.id,
             "name": recipe.name,
             "url": f"view/{recipe.file_path.split('.')[0]}",
+            "ingredients": [
+                {
+                    "id": ri.id,
+                    "name": ing.name,
+                    "size": ri.size,
+                    "unit": ri.unit,
+                    "info": get_latest_ingredient_info(ing.id)
+                }
+                for ri in RecipesIngredients.query.filter_by(recipe_id=recipe.id).all()
+                for ing in Ingredients.query.filter_by(id=ri.ingredient_id).all()
+            ],
             "tags": recipe.tags
         }
         for recipe in recipes

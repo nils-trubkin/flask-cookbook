@@ -108,27 +108,34 @@ def parse_markdown(md_file):
 
 def parse_size_and_unit(size_str):
     """
-    Parse the size and unit from a string like '1.5kg', '2x', '1/4 cup', or just 'kg'.
-    Size is optional and defaults to 1.
-    Returns a tuple (size: float, unit: str).
+    Parse the size and unit from a string like:
+    - '1.5kg'
+    - '1/2cup'
+    - '2x'
+    - 'kg'  (defaults to size = 1)
+    - ''    (defaults to size = 1, unit = 'x')
+
+    Returns:
+        (size: float, unit: str)
     """
     size_str = size_str.strip()
-    # Match optional size (decimal or fraction) followed by optional unit
-    match = re.match(r"^(([0-9]*\.?[0-9]+|[0-9]+\/[0-9]+)?)([a-zA-Z]*)$", size_str)
+
+    # Match optional number (int, float, or fraction) + optional unit
+    match = re.match(r"^((\d+/\d+)|(\d*\.\d+)|(\d+))?([a-zA-Z]*)$", size_str)
     if not match:
-        raise ValueError(f"Invalid size string: {size_str}")
+        raise ValueError(f"Invalid format for size_str: '{size_str}'")
 
-    num_str = match.group(1)
-    unit = match.group(3) if match.group(3) else "x"
+    num_str = match.group(1)  # number part: "1/2", "1.5", "2", or None
+    unit = match.group(5) if match.group(5) else "x"
 
-    if num_str == "" or num_str is None:
+    if not num_str:
         size = 1.0
     else:
         try:
             size = float(Fraction(num_str))
         except ValueError:
-            size = float(num_str)
-
+            raise ValueError(f"Could not parse size number: {num_str}")
+    
     return size, unit
 
 

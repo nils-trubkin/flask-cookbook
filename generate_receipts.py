@@ -77,22 +77,28 @@ Session = sessionmaker(bind=engine)
 
 def extract_metadata(text):
     store = re.search(r"Kvitto\n(.+?)\n", text)
-    date = re.search(r"Datum:\n(\d{4}-\d{2}-\d{2})", text)
-    time = re.search(r"Tid:\n(\d{2}:\d{2})", text)
-    number = re.search(r"Kvittonr:\n(\d+)", text)
-    discount = re.search(r"Erhållen rabatt:\n-([\d.]+)", text)
-    total = re.search(r"Total:\n([\d.]+)", text)
-    card = re.search(r"\*{12}(\d{4})", text)
-    if not all([store, date, time, number, discount, total, card]):
+    date = re.search(r"\b(\d{4}-\d{2}-\d{2})\b", text)
+    time = re.search(r"\b(\d{2}:\d{2})\b", text)
+    number = re.search(r"Kvitto ?nr\s*\n?(\d+)", text, re.IGNORECASE)
+    discount = re.search(r"Erhållen rabatt\s*\n?-([\d,]+)", text)
+    paid = re.search(r"Betalat\s+([\d,]+)", text)
+    card = re.search(r"\*{4,}(\d{4})", text)
+
+    # Use comma as decimal separator, convert to float
+    def parse_amount(match):
+        return float(match.group(1).replace(",", ".")) if match else 0.0
+
+    if not all([store, date, time, number, paid]):
         return None
+
     return {
         "store": store.group(1).strip(),
         "date": date.group(1),
         "time": time.group(1),
         "number": number.group(1),
-        "discount": float(discount.group(1)),
-        "total": float(total.group(1)),
-        "card": card.group(1).strip(),
+        "discount": parse_amount(discount),
+        "total": parse_amount(paid),
+        "card": card.group(1).strip() if card else None,
     }
 
 

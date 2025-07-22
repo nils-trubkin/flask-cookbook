@@ -18,7 +18,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(BASE_DIR, "recipes.db")
 
 load_dotenv()
-RECIPES_DIR = os.getenv("RECIPES_DIR")
+RECEIPTS_DIR = os.getenv("RECEIPTS_DIR")
 
 Base = declarative_base()
 
@@ -162,4 +162,4 @@ def process_receipts(pdf_dir: str):
 
 
 if __name__ == "__main__":
-    process_receipts(RECIPES_DIR)
+    process_receipts(RECEIPTS_DIR)

@@ -648,10 +648,13 @@ def link_ingredient():
     if not ingredient:
         return error("Ingredient not found")
 
+    size = request.args.get("size", "1.0")
+    unit = request.args.get("unit", "x")
+
     barcode_entry = Barcodes.query.filter_by(barcode=barcode).first()
     if not barcode_entry:
         # If the barcode does not exist, create a new one
-        barcode_entry = Barcodes(barcode=barcode, size=1.0, unit="y")
+        barcode_entry = Barcodes(barcode=barcode, size=float(size), unit=unit)
         db.session.add(barcode_entry)
         db.session.commit()
 

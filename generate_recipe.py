@@ -129,7 +129,7 @@ def parse_size_and_unit(size_str):
         raise ValueError(f"Invalid format for size_str: '{size_str}'")
 
     num_str = match.group(1)
-    unit = match.group(5) if match.group(5) else "x"
+    unit = match.group(5).lower() if match.group(5) else "x"
 
     if not num_str:
         size = 1.0

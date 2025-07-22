@@ -353,6 +353,15 @@ def view_recipe(recipe):
     return xdg_open(f"http://localhost:8001/view/{recipe}")
 
 
+@app.route("/api/recipes", methods=["POST"])
+def view_recipe_api():
+    """Adapter for viewing a recipe via API"""
+    name = request.args.get("name")
+    if not name:
+        return error("Recipe name is required")
+    return xdg_open(f"http://localhost:8001/view/{name}")
+
+
 @app.route("/view/<recipe>")
 def view(recipe):
     """View a specific recipe"""

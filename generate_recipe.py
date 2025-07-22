@@ -3,6 +3,7 @@
 import sys
 import os
 import re
+from fractions import Fraction
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from models import db, Recipes, Ingredients, RecipesIngredients
@@ -107,14 +108,29 @@ def parse_markdown(md_file):
 
 def parse_size_and_unit(size_str):
     """
-    Parse the size and unit from a string like '1.5kg' or '2x'.
+    Parse the size and unit from a string like '1.5kg', '2x', or '1/4 cup'.
     Returns a tuple (size: float, unit: str).
     """
-    match = re.match(r"^([0-9]*\.?[0-9]+)\s*([a-zA-Z]*)$", size_str)
+    # Pattern to match fraction or decimal number + optional unit
+    match = re.match(
+        r"^([0-9]*\.?[0-9]+|[0-9]+\/[0-9]+)\s*([a-zA-Z]*)$", size_str.strip()
+    )
     if not match:
         raise ValueError(f"Invalid size string: {size_str}")
-    size = float(match.group(1))
+
+    num_str = match.group(1)
     unit = match.group(2) if match.group(2) else "x"
+    is_fraction = "/" in num_str
+    size = 0.0
+
+    try:
+        if is_fraction:
+            size = float(Fraction(num_str))
+        else:
+            size = float(num_str)
+    except ValueError as e:
+        raise ValueError(f"Invalid number format in size string: {size_str}") from e
+
     return size, unit
 
 

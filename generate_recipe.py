@@ -108,24 +108,23 @@ def parse_markdown(md_file):
 
 def parse_size_and_unit(size_str):
     """
-    Parse the size and unit from a string like:
+    Parse size and unit from a string like:
     - '1.5kg'
-    - '1/2cup'
-    - '2x'
-    - 'kg'  (defaults to size = 1)
-    - ''    (defaults to size = 1, unit = 'x')
+    - '1/2 cup'
+    - '500 g'
+    - 'g'     (defaults to 1)
+    - ''      (defaults to 1, 'x')
 
-    Returns:
-        (size: float, unit: str)
+    Returns: (size: float, unit: str)
     """
     size_str = size_str.strip()
 
-    # Match optional number (int, float, or fraction) + optional unit
-    match = re.match(r"^((\d+/\d+)|(\d*\.\d+)|(\d+))?([a-zA-Z]*)$", size_str)
+    # Match optional number (fraction, float, or int), optional space, then unit
+    match = re.match(r"^((\d+/\d+)|(\d*\.\d+)|(\d+))?\s*([a-zA-Z]+)?$", size_str)
     if not match:
         raise ValueError(f"Invalid format for size_str: '{size_str}'")
 
-    num_str = match.group(1)  # number part: "1/2", "1.5", "2", or None
+    num_str = match.group(1)
     unit = match.group(5) if match.group(5) else "x"
 
     if not num_str:
@@ -134,8 +133,8 @@ def parse_size_and_unit(size_str):
         try:
             size = float(Fraction(num_str))
         except ValueError:
-            raise ValueError(f"Could not parse size number: {num_str}")
-    
+            raise ValueError(f"Could not parse size number: '{num_str}'")
+
     return size, unit
 
 

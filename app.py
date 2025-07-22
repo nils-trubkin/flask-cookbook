@@ -556,10 +556,10 @@ def get_latest_ingredient_info(id):
         return None
     
     # Zip store items with their barcodes to get size and unit
-    store_items_info = {
-        item: Barcodes.query.filter_by(barcode=item.barcode).first()
+    store_items_info = [
+        (item, Barcodes.query.filter_by(barcode=item.barcode).first())
         for item in store_items
-    }
+    ]
 
     # Get the store item with the lowest normalized price
     lowest_price_item = get_cheapest_ingredient_normalized(store_items_info)
@@ -583,13 +583,19 @@ def get_cheapest_ingredient_normalized(store_items_info):
     if not store_items_info:
         return None
 
-    # Normalize the prices by size converting g to kg and ml to l
-    normalized_prices = {
-        item: (item.price / (barcode.size if barcode.size > 0 else 1)) * (1000 if barcode.unit in ["g", "ml"] else 1)
-        for item, barcode in store_items_info.items()
-    }
+    normalized_prices = {}
 
-    # Get the store item with the lowest normalized price
+    for item, barcode in store_items_info:
+        if not barcode or not barcode.size:
+            continue
+        size = barcode.size if barcode.size > 0 else 1
+        unit_multiplier = 1000 if barcode.unit in ["g", "ml"] else 1
+        normalized_price = (item.price / size) * unit_multiplier
+        normalized_prices[item] = normalized_price
+
+    if not normalized_prices:
+        return None
+
     return min(normalized_prices, key=normalized_prices.get)
 
 

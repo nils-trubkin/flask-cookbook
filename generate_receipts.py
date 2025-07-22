@@ -1,4 +1,4 @@
-import re
+iCmport re
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -222,8 +222,8 @@ def process_receipts(pdf_dir: str):
         text = "\n".join(page.get_text() for page in doc)
 
         metadata = extract_metadata(text)
-        if not metadata:
-            print(f"⚠️ Skipping {pdf_path.name}, no metadata")
+        if not all(metadata.values()):
+            print(f"⚠️ Skipping {pdf_path.name}, metadata incomplete: {metadata}")
             continue
 
         existing = (
@@ -242,6 +242,9 @@ def process_receipts(pdf_dir: str):
 
         receipt = Receipt(**metadata)
         items = extract_items(text)
+        if not items:
+            print(f"⚠️ No items found in {pdf_path.name}")
+            continue
         for item_data in items:
             receipt.items.append(StoreItem(**item_data))
 

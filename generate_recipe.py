@@ -61,7 +61,7 @@ def parse_markdown(md_file):
     """
     name = None
     ingredients = []
-    ingredient_id_size_unit = {}
+    ingredient_id_size_units = []
     instructions = []
     tags = []
 
@@ -90,11 +90,15 @@ def parse_markdown(md_file):
             if "@" in ingredient:
                 tag_split = ingredient.split("@")
                 tag = tag_split[1].split(" ")[0].strip()
+                # Remove any trailing punctuation from the tag
+                tag = re.sub(r"[^\w-]", "", tag)
                 tag_lower = tag.lower()
                 formatted_tag = tag_lower.replace("-", " ")
                 ingredient_id = add_ingredient_to_db(tag_lower)
                 size, unit = parse_size_and_unit(tag_split[0].strip())
-                ingredient_id_size_unit[tag] = (ingredient_id, size, unit)
+                ingredient_id_size_units.append(
+                    (ingredient_id, size, unit)
+                )
                 ingredient = ingredient.replace(f"@{tag}", formatted_tag)
             ingredients.append(ingredient)
         elif section == "instructions" and line:  # Instruction line
@@ -103,7 +107,7 @@ def parse_markdown(md_file):
             tags = line.split(",")
             tags = [tag.strip().lower() for tag in tags]
 
-    return name, ingredients, ingredient_id_size_unit, instructions, tags
+    return name, ingredients, ingredient_id_size_units, instructions, tags
 
 
 def parse_size_and_unit(size_str):
@@ -143,7 +147,7 @@ def generate_html_output(md_file, output_file, template_file, image_file=None):
     Generate an HTML file with the desired template structure from the markdown content.
     """
     # Parse markdown content into name, ingredients, and instructions
-    name, ingredients, ingredient_id_size_unit, instructions, tags = parse_markdown(
+    name, ingredients, ingredient_id_size_units, instructions, tags = parse_markdown(
         md_file
     )
 
@@ -186,7 +190,7 @@ def generate_html_output(md_file, output_file, template_file, image_file=None):
             f"convert {image_file} -resize 400x static/images/{os.path.basename(image_file)}"
         )
 
-    return name, ingredient_id_size_unit, tags
+    return name, ingredient_id_size_units, tags
 
 
 def parse_args():
@@ -206,7 +210,7 @@ def parse_args():
     # Ensure the database is set up
     setup_database()
 
-    name, ingredient_id_size_unit, tags = generate_html_output(
+    name, ingredient_id_size_units, tags = generate_html_output(
         md_file, output_file, template_file, image_file
     )
 
@@ -214,7 +218,7 @@ def parse_args():
     recipe_id = update_recipe_in_database(name, output_file.split("/")[-1], tags)
 
     # Add recipe ingredients to the database
-    for ingredient_id, size, unit in ingredient_id_size_unit.values():
+    for ingredient_id, size, unit in ingredient_id_size_units:
         add_recipe_ingredient_to_db(recipe_id, ingredient_id, size, unit)
     print(f"🍽️ Recipe '{name}' generated successfully and saved to {output_file}.")
 

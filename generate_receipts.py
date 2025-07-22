@@ -141,15 +141,15 @@ def extract_items(text):
             {
                 "name": g["name"].strip(),
                 "barcode": g["barcode"],
-                "price": float(g["price"]),
-                "quantity": float(g["quantity"]),
+                "price": float(g["price"].replace(",", ".")),
+                "quantity": float(g["quantity"].replace(",", ".")),
                 "unit": g["unit"],
-                "total": float(g["total"]),
+                "total": float(g["total"].replace(",", ".")),
                 "discount_name": (
                     g["discount_name"].strip() if g["discount_name"] else None
                 ),
                 "discount_value": (
-                    float(g["discount_total"]) if g["discount_total"] else None
+                    float(g["discount_total"].replace(",", ".") if g["discount_total"] else None
                 ),
             }
         )

@@ -557,11 +557,18 @@ def get_latest_ingredient_info(id):
 
     # Get the store item with the lowest price
     lowest_price_item = min(store_items, key=lambda item: item.price)
+
+    barcode = Barcodes.query.filter_by(barcode=lowest_price_item.barcode).first()
+
+    if not barcode:
+        return None
     
     return {
         "name": lowest_price_item.name,
         "price": lowest_price_item.price,
         "barcode": lowest_price_item.barcode
+        "size": barcode.size,
+        "unit": barcode.unit,
     }
 
 

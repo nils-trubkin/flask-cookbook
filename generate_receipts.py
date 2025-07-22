@@ -76,29 +76,36 @@ Session = sessionmaker(bind=engine)
 
 
 def extract_metadata(text):
-    store = re.search(r"Kvitto\n(.+?)\n", text)
-    date = re.search(r"\b(\d{4}-\d{2}-\d{2})\b", text)
-    time = re.search(r"\b(\d{2}:\d{2})\b", text)
-    number = re.search(r"Kvitto ?nr\s*\n?(\d+)", text, re.IGNORECASE)
-    discount = re.search(r"Erhållen rabatt\s*\n?-([\d,]+)", text)
-    paid = re.search(r"Betalat\s+([\d,]+)", text)
-    card = re.search(r"\*{4,}(\d{4})", text)
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
 
-    # Use comma as decimal separator, convert to float
+    try:
+        idx = lines.index("Datum")
+        date = lines[idx + 1]
+        time = lines[idx + 2]
+        number = lines[idx + 4]
+    except (ValueError, IndexError):
+        return None  # Structure doesn't match expected format
+
+    # Extract store name
+    store_match = re.search(r"Kvitto\n(.+?)\n", text)
+    store = store_match.group(1).strip() if store_match else None
+
+    # Extract optional discount and paid total
+    discount_match = re.search(r"Erhållen rabatt\s*\n?-([\d,]+)", text)
+    paid_match = re.search(r"Betalat\s+([\d,]+)", text)
+    card_match = re.search(r"\*{4,}(\d{4})", text)
+
     def parse_amount(match):
         return float(match.group(1).replace(",", ".")) if match else 0.0
 
-    if not all([store, date, time, number, paid]):
-        return None
-
     return {
-        "store": store.group(1).strip(),
-        "date": date.group(1),
-        "time": time.group(1),
-        "number": number.group(1),
-        "discount": parse_amount(discount),
-        "total": parse_amount(paid),
-        "card": card.group(1).strip() if card else None,
+        "store": store,
+        "date": date,
+        "time": time,
+        "number": number,
+        "discount": parse_amount(discount_match),
+        "total": parse_amount(paid_match),
+        "card": card_match.group(1) if card_match else None,
     }
 
 

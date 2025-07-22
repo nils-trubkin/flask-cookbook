@@ -2,111 +2,56 @@
 
 import sys
 import os
-import sqlite3
 import re
-
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, scoped_session
+from models import db, Recipes, Ingredients, RecipesIngredients
 
 RECIPE_DB_PATH = "recipes.db"
 
-
-def setup_database(db_path=RECIPE_DB_PATH):
-    """
-    Create or connect to the database and ensure the `recipes` table exists.
-    """
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-    CREATE TABLE IF NOT EXISTS recipes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        file_path TEXT NOT NULL UNIQUE,
-        tags TEXT
-    );
-    """
-    )
-    cursor.execute(
-        """
-    CREATE TABLE IF NOT EXISTS ingredients (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE
-    );
-    """
-    )
-    cursor.execute(
-        """
-    CREATE TABLE IF NOT EXISTS barcodes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        barcode TEXT NOT NULL UNIQUE,
-        size REAL NOT NULL DEFAULT 1.0,
-        unit TEXT NOT NULL DEFAULT 'x'
-    );
-    """
-    )
-    cursor.execute(
-        """
-    CREATE TABLE IF NOT EXISTS ingredient_barcodes (
-        ingredient_id INTEGER NOT NULL,
-        barcode_id INTEGER NOT NULL,
-        PRIMARY KEY (ingredient_id, barcode_id),
-        FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE,
-        FOREIGN KEY (barcode_id) REFERENCES barcodes(id) ON DELETE CASCADE
-    );
-    """
-    )
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS recipe_ingredients (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        recipe_id INTEGER NOT NULL,
-        ingredient_id INTEGER NOT NULL,
-        size REAL NOT NULL,
-        unit TEXT NOT NULL,
-        FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
-        FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
-    );
-    """
-    )
-    conn.commit()
-    conn.close()
+# SQLAlchemy setup
+engine = create_engine(f"sqlite:///{RECIPE_DB_PATH}")
+db.Session = scoped_session(sessionmaker(bind=engine))
+session = db.Session()
 
 
-def update_recipe_in_database(name, ingredient_size_unit, file_path, tags, db_path=RECIPE_DB_PATH):
-    """
-    Insert or update a recipe entry in the database.
-    """
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
+def setup_database():
+    """Set up the database and create tables if they do not exist."""
+    db.metadata.create_all(bind=engine)
 
-    # Check if the recipe already exists
-    cursor.execute("SELECT id FROM recipes WHERE file_path = ?", (file_path,))
-    recipe = cursor.fetchone()
+
+def add_ingredient_to_db(name):
+    """Add an ingredient to the database if it doesn't exist."""
+    ingredient = session.query(Ingredients).filter_by(name=name).first()
+    if not ingredient:
+        ingredient = Ingredients(name=name)
+        session.add(ingredient)
+        session.commit()
+    return ingredient.id
+
+
+def update_recipe_in_database(name, file_path, tags):
+    """Update or add a recipe in the database."""
+    recipe = session.query(Recipes).filter_by(file_path=file_path).first()
 
     if recipe:
-        recipe_id = recipe[0]
-        # Update existing recipe
-        cursor.execute(
-            """
-        UPDATE recipes
-        SET name = ?, tags = ?
-        WHERE file_path = ?
-        """,
-            (name, ",".join(tags), file_path),
-        )
+        recipe.name = name
+        recipe.tags = ",".join(tags)
     else:
-        # Insert new recipe
-        cursor.execute(
-            """
-        INSERT INTO recipes (name, file_path, tags)
-        VALUES (?, ?, ?)
-        """,
-            (name, file_path, ",".join(tags)),
-        )
-        recipe_id = cursor.lastrowid
+        recipe = Recipes(name=name, file_path=file_path, tags=",".join(tags))
+        session.add(recipe)
 
-    conn.commit()
-    conn.close()
-    return recipe_id
+    session.commit()
+    return recipe.id
+
+
+def add_recipe_ingredient_to_db(recipe_id, ingredient_id, size, unit):
+    """Add a recipe ingredient to the database."""
+    ri = RecipesIngredients(
+        recipe_id=recipe_id, ingredient_id=ingredient_id, size=size, unit=unit
+    )
+    session.add(ri)
+    session.commit()
 
 
 def parse_markdown(md_file):
@@ -148,11 +93,7 @@ def parse_markdown(md_file):
                 formatted_tag = tag_lower.replace("-", " ")
                 ingredient_id = add_ingredient_to_db(tag_lower)
                 size, unit = parse_size_and_unit(tag_split[0].strip())
-                ingredient_id_size_unit[tag] = (
-                    ingredient_id,
-                    size,
-                    unit
-                )
+                ingredient_id_size_unit[tag] = (ingredient_id, size, unit)
                 ingredient = ingredient.replace(f"@{tag}", formatted_tag)
             ingredients.append(ingredient)
         elif section == "instructions" and line:  # Instruction line
@@ -164,62 +105,17 @@ def parse_markdown(md_file):
     return name, ingredients, ingredient_id_size_unit, instructions, tags
 
 
-def add_ingredient_to_db(name, db_path=RECIPE_DB_PATH):
-    """
-    Add an ingredient to the database if it contains '@'.
-    """
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-
-    # Check if the ingredient already exists
-    cursor.execute("SELECT id FROM ingredients WHERE name = ?", (name,))
-    result = cursor.fetchone()
-    if result:
-        ingredient_id = result[0]
-    else:
-        # Insert new ingredient
-        cursor.execute(
-            "INSERT INTO ingredients (name) VALUES (?)", (name,)
-        )
-        ingredient_id = cursor.lastrowid
-
-    conn.commit()
-    conn.close()
-    return ingredient_id
-
-
-def add_recipe_ingredient_to_db(recipe_id, ingredient_id, size, unit, db_path=RECIPE_DB_PATH):
-    """
-    Add a recipe ingredient to the database.
-    """
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-
-    # Insert new recipe ingredient
-    cursor.execute(
-        """
-        INSERT INTO recipe_ingredients (recipe_id, ingredient_id, size, unit)
-        VALUES (?, ?, ?, ?)
-        """,
-        (recipe_id, ingredient_id, size, unit)
-    )
-
-    conn.commit()
-    conn.close()
-
-
 def parse_size_and_unit(size_str):
     """
     Parse the size and unit from a string like '1.5kg' or '2x'.
     Returns a tuple (size: float, unit: str).
     """
-    match = re.match(r'^([0-9]*\.?[0-9]+)\s*([a-zA-Z]*)$', size_str)
-    if match:
-        size = float(match.group(1))
-        unit = match.group(2) if match.group(2) else "x"
-        return size, unit
-    else:
+    match = re.match(r"^([0-9]*\.?[0-9]+)\s*([a-zA-Z]*)$", size_str)
+    if not match:
         raise ValueError(f"Invalid size string: {size_str}")
+    size = float(match.group(1))
+    unit = match.group(2) if match.group(2) else "x"
+    return size, unit
 
 
 def generate_html_output(md_file, output_file, template_file, image_file=None):
@@ -227,7 +123,9 @@ def generate_html_output(md_file, output_file, template_file, image_file=None):
     Generate an HTML file with the desired template structure from the markdown content.
     """
     # Parse markdown content into name, ingredients, and instructions
-    name, ingredients, ingredient_id_size_unit, instructions, tags = parse_markdown(md_file)
+    name, ingredients, ingredient_id_size_unit, instructions, tags = parse_markdown(
+        md_file
+    )
 
     # Read the template
     with open(template_file, "r", encoding="utf-8") as f:
@@ -288,15 +186,20 @@ def parse_args():
     # Ensure the database is set up
     setup_database()
 
-    name, ingredient_id_size_unit, tags = generate_html_output(md_file, output_file, template_file, image_file)
+    name, ingredient_id_size_unit, tags = generate_html_output(
+        md_file, output_file, template_file, image_file
+    )
 
     # Update the database with the new recipe
-    recipe_id = update_recipe_in_database(name, ingredient_id_size_unit, output_file.split("/")[-1], tags)
+    recipe_id = update_recipe_in_database(name, output_file.split("/")[-1], tags)
 
     # Add recipe ingredients to the database
-    for ingredient, (ingredient_id, size, unit) in ingredient_id_size_unit.items():
+    for ingredient_id, size, unit in ingredient_id_size_unit.values():
         add_recipe_ingredient_to_db(recipe_id, ingredient_id, size, unit)
 
 
 if __name__ == "__main__":
-    parse_args()
+    try:
+        parse_args()
+    finally:
+        session.close()

@@ -57,13 +57,17 @@ def add_recipe_ingredient_to_db(recipe_id, ingredient_id, size, unit):
 
 def parse_markdown(md_file):
     """
-    Parse the markdown file into name, ingredients, and instructions.
+    Parse the markdown file into structured recipe data.
+    Returns:
+        dict with keys: name, ingredients, ingredient_links, instructions, tags
     """
-    name = None
-    ingredients = []
-    ingredient_id_size_units = []
-    instructions = []
-    tags = []
+    parsed = {
+        "name": None,
+        "ingredients": [],
+        "ingredient_links": [],  # tuples of (ingredient_id, size, unit)
+        "instructions": [],
+        "tags": [],
+    }
 
     with open(md_file, "r", encoding="utf-8") as f:
         lines = f.readlines()
@@ -71,41 +75,46 @@ def parse_markdown(md_file):
     section = None
     for line in lines:
         line = line.strip()
-        if line.startswith("# "):  # Title
-            name = line[2:]
-        elif line.startswith("## Ingredients"):  # Ingredients section
+        if line.startswith("# "):
+            parsed["name"] = line[2:]
+        elif line.startswith("## Ingredients"):
             section = "ingredients"
-        elif line.startswith("## Instructions"):  # Instructions section
+        elif line.startswith("## Instructions"):
             section = "instructions"
-        elif line.startswith("## Tags"):  # Tags section
+        elif line.startswith("## Tags"):
             section = "tags"
-        elif line.startswith("##"):  # Unrecognized section (skip for now)
+        elif line.startswith("##"):
             section = None
-        elif section == "ingredients" and line[:1] in {
-            "-",
-            "*",
-            "+",
-        }:  # Ingredient item
-            ingredient = line[1:].strip()
-            if "@" in ingredient:
-                tag_split = ingredient.split("@")
-                tag = tag_split[1].split(" ")[0].strip()
-                # Remove any trailing punctuation from the tag
-                tag = re.sub(r"[^\w-]", "", tag)
-                tag_lower = tag.lower()
-                formatted_tag = tag_lower.replace("-", " ")
-                ingredient_id = add_ingredient_to_db(tag_lower)
-                size, unit = parse_size_and_unit(tag_split[0].strip())
-                ingredient_id_size_units.append((ingredient_id, size, unit))
-                ingredient = ingredient.replace(f"@{tag}", formatted_tag)
-            ingredients.append(ingredient)
-        elif section == "instructions" and line:  # Instruction line
-            instructions.append(line)
-        elif section == "tags" and line:  # Tag line
-            tags = line.split(",")
-            tags = [tag.strip().lower() for tag in tags]
+        elif section == "ingredients" and line[:1] in {"-", "*", "+"}:
+            ingredient_line = line[1:].strip()
+            processed_line, link = process_ingredient_line(ingredient_line)
+            parsed["ingredients"].append(processed_line)
+            if link:
+                parsed["ingredient_links"].append(link)
+        elif section == "instructions" and line:
+            parsed["instructions"].append(line)
+        elif section == "tags" and line:
+            parsed["tags"] = [tag.strip().lower() for tag in line.split(",")]
 
-    return name, ingredients, ingredient_id_size_units, instructions, tags
+    return parsed
+
+
+def process_ingredient_line(line):
+    """
+    Process a single ingredient line, extracting size/unit and database id if available.
+    Returns:
+        (formatted_line: str, (ingredient_id, size, unit) or None)
+    """
+    if "@" in line:
+        name_part, tag_part = line.split("@", 1)
+        tag = tag_part.split(" ")[0].strip()
+        tag_clean = re.sub(r"[^\w-]", "", tag).lower()
+        formatted_tag = tag_clean.replace("-", " ")
+        ingredient_id = add_ingredient_to_db(tag_clean)
+        size, unit = parse_size_and_unit(name_part.strip())
+        line = line.replace(f"@{tag}", formatted_tag)
+        return line, (ingredient_id, size, unit)
+    return line, None
 
 
 def parse_size_and_unit(size_str):
@@ -134,8 +143,8 @@ def parse_size_and_unit(size_str):
     else:
         try:
             size = float(Fraction(num_str))
-        except ValueError:
-            raise ValueError(f"Could not parse size number: '{num_str}'")
+        except ValueError as exc:
+            raise ValueError(f"Could not parse size number: '{num_str}'") from exc
 
     return size, unit
 

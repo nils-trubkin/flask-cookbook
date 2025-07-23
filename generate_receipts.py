@@ -1,3 +1,5 @@
+"""Generate and process PDF receipts from a directory."""
+
 import re
 import os
 from pathlib import Path

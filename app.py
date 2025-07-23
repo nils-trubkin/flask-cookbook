@@ -9,6 +9,15 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, request, Response
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import OperationalError
+from models import (
+    db,
+    Recipes,
+    Ingredients,
+    RecipesIngredients,
+    Barcodes,
+    StoreItem,
+    Receipt,
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(BASE_DIR, "recipes.db")
@@ -22,143 +31,7 @@ os.environ["BROWSER"] = "chromium-browser"
 os.environ["GIT_SSH"] = "/home/dietpi/gitssh.sh"
 os.environ["DISPLAY"] = ":0.0"
 db = SQLAlchemy(app)
-
-# Association Table
-ingredient_barcodes = db.Table(
-    'ingredient_barcodes',
-    db.Column('ingredient_id', db.Integer, db.ForeignKey('ingredients.id', ondelete="CASCADE"), primary_key=True),
-    db.Column('barcode_id', db.Integer, db.ForeignKey('barcodes.id', ondelete="CASCADE"), primary_key=True),
-    db.Column('unit', db.String(20), nullable=True)  # Optional unit for the ingredient
-)
-
-commands = []
-
-
-@dataclass
-class Recipes(db.Model):
-    """Database model for recipes"""
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), nullable=False)
-    file_path = db.Column(db.String(120), nullable=False)
-    tags = db.Column(db.String(200))  # Comma-separated tags
-    
-
-@dataclass
-class Ingredients(db.Model):
-    """Database model for ingredients"""
-    id: int
-    name: str
-
-    __tablename__ = "ingredients"
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), nullable=False, unique=True)
-
-    # Relationship to barcodes (many-to-many)
-    barcodes = db.relationship(
-        "Barcodes",
-        secondary=ingredient_barcodes,
-        back_populates="ingredients"
-    )
-
-
-@dataclass
-class RecipesIngredients(db.Model):
-    """Database model for recipe ingredients"""
-    id: int
-    recipe_id: int
-    ingredient_id: int
-    size: float
-    unit: str
-
-    __tablename__ = "recipe_ingredients"
-
-    id = db.Column(db.Integer, primary_key=True)
-    recipe_id = db.Column(db.Integer, db.ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False)
-    ingredient_id = db.Column(db.Integer, db.ForeignKey("ingredients.id", ondelete="CASCADE"), nullable=False)
-    size = db.Column(db.Float, nullable=False)
-    unit = db.Column(db.String(20), nullable=False)
-
-
-@dataclass
-class Barcodes(db.Model):
-    """Database model for barcodes"""
-    id: int
-    barcode: str
-    size: float
-    unit: str
-
-    __tablename__ = "barcodes"
-
-    id = db.Column(db.Integer, primary_key=True)
-    barcode = db.Column(db.String(50), nullable=False, unique=True)
-    size = db.Column(db.Float, nullable=False)
-    unit = db.Column(db.String(20), nullable=False)
-
-    # Relationship to ingredients (many-to-many)
-    ingredients = db.relationship(
-        "Ingredients",
-        secondary=ingredient_barcodes,
-        back_populates="barcodes"
-    )
-
-@dataclass
-class Receipt(db.Model):
-    """Database model for receipts"""
-    id: int
-    store: str
-    date: str
-    time: str
-    number: str
-    discount: float
-    total: float
-    card: str
-
-    __tablename__ = "receipts"
-
-    id = db.Column(db.Integer, primary_key=True)
-    store = db.Column(db.String(80), nullable=False)
-    date = db.Column(db.String(20), nullable=False)
-    time = db.Column(db.String(20), nullable=False)
-    number = db.Column(db.String(20), nullable=False)
-    discount = db.Column(db.Float, nullable=False)
-    total = db.Column(db.Float, nullable=False)
-    card = db.Column(db.String(20), nullable=False)
-
-    items = db.relationship("StoreItem", back_populates="receipt", cascade="all, delete-orphan")
-
-
-@dataclass
-class StoreItem(db.Model):
-    """Database model for store items"""
-    id: int
-    name: str
-    barcode: str
-    price: float
-    quantity: float
-    unit: str
-    total: float
-    discount_name: str = None
-    discount_value: float = 0.0
-
-    __tablename__ = "store_items"
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), nullable=False)
-    barcode = db.Column(db.String(50), nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    quantity = db.Column(db.Float, nullable=False)
-    unit = db.Column(db.String(20), nullable=False)
-    total = db.Column(db.Float, nullable=False)
-    discount_name = db.Column(db.String(50))
-    discount_value = db.Column(db.Float, default=0.0)
-
-    receipt_id = db.Column(
-        db.Integer, db.ForeignKey("receipts.id", ondelete="CASCADE"), nullable=False
-    )
-    
-    receipt = db.relationship("Receipt", back_populates="items")
+commands = []  # Queue for commands to be executed
 
 
 @dataclass
@@ -515,12 +388,12 @@ def get_recipes():
                     "name": ing.name,
                     "size": ri.size,
                     "unit": ri.unit,
-                    "info": get_latest_ingredient_info(ing.id)
+                    "info": get_latest_ingredient_info(ing.id),
                 }
                 for ri in RecipesIngredients.query.filter_by(recipe_id=recipe.id).all()
                 for ing in Ingredients.query.filter_by(id=ri.ingredient_id).all()
             ],
-            "tags": recipe.tags
+            "tags": recipe.tags,
         }
         for recipe in recipes
     ]
@@ -543,26 +416,25 @@ def get_recipe():
         "id": recipe.id,
         "name": recipe.name,
         "url": f"{recipe.file_path.split('.')[0]}",
-        "ingredients": [ # recipe ingredients
+        "ingredients": [  # recipe ingredients
             {
                 "id": ing.id,
                 "name": ing.name,
                 "size": ri.size,
                 "unit": ri.unit,
-                "info": get_latest_ingredient_info(ing.id)
+                "info": get_latest_ingredient_info(ing.id),
             }
             for ri in recipe_ingredients
             for ing in Ingredients.query.filter_by(id=ri.ingredient_id).all()
         ],
-
-        "tags": recipe.tags
+        "tags": recipe.tags,
     }
     return Response(json.dumps(recipe_data), content_type="application/json")
 
 
-def get_latest_ingredient_info(id):
-    """Get the latest price of each linked barcode and return the lowest price with the store item name"""
-    ingredient = Ingredients.query.get(id)
+def get_latest_ingredient_info(ingredient_id):
+    """Get the latest store item info for an ingredient by id"""
+    ingredient = Ingredients.query.get(ingredient_id)
     if not ingredient:
         return None
 
@@ -570,11 +442,13 @@ def get_latest_ingredient_info(id):
     if not barcodes:
         return None
 
-    store_items = StoreItem.query.filter(StoreItem.barcode.in_([barcode.barcode for barcode in barcodes])).all()
-    
+    store_items = StoreItem.query.filter(
+        StoreItem.barcode.in_([barcode.barcode for barcode in barcodes])
+    ).all()
+
     if not store_items:
         return None
-    
+
     # Zip store items with their barcodes to get size and unit
     store_items_info = [
         (item, Barcodes.query.filter_by(barcode=item.barcode).first())
@@ -588,7 +462,7 @@ def get_latest_ingredient_info(id):
 
     if not barcode:
         return None
-    
+
     return {
         "name": lowest_price_item.name,
         "price": lowest_price_item.price,
@@ -627,12 +501,13 @@ def get_ingredients():
         {
             "id": ing.id,
             "name": ing.name,
-            "barcodes": { 
-                barcode.barcode : { 
+            "barcodes": {
+                barcode.barcode: {
                     "name": get_barcode_name(barcode.barcode),
                     "size": barcode.size,
                     "unit": barcode.unit,
-                } for barcode in ing.barcodes 
+                }
+                for barcode in ing.barcodes
             },
         }
         for ing in ingredients
@@ -642,16 +517,16 @@ def get_ingredients():
 
 def get_barcode_name(barcode):
     """Get the latest store item name by barcode"""
-    store_item = StoreItem.query.filter_by(barcode=barcode).order_by(StoreItem.id.desc()).first()
+    store_item = (
+        StoreItem.query.filter_by(barcode=barcode).order_by(StoreItem.id.desc()).first()
+    )
     return store_item.name if store_item else None
 
 
 @app.route("/api/unlinked_ingredients", methods=["GET"])
 def get_unlinked_ingredients():
     """Get all ingredients that are not linked to any barcodes"""
-    unlinked_ingredients = Ingredients.query.filter(
-        ~Ingredients.barcodes.any()
-    ).all()
+    unlinked_ingredients = Ingredients.query.filter(~Ingredients.barcodes.any()).all()
     ingredients_list = [
         {
             "id": ing.id,
@@ -676,12 +551,13 @@ def get_ingredient():
     ingredient_data = {
         "id": ingredient.id,
         "name": ingredient.name,
-        "barcodes": { 
-            barcode.barcode: { 
+        "barcodes": {
+            barcode.barcode: {
                 "name": get_barcode_name(barcode.barcode),
                 "size": barcode.size,
                 "unit": barcode.unit,
-            } for barcode in ingredient.barcodes 
+            }
+            for barcode in ingredient.barcodes
         },
     }
     return Response(json.dumps(ingredient_data), content_type="application/json")
@@ -721,12 +597,13 @@ def link_ingredient():
     ingredient_data = {
         "id": ingredient.id,
         "name": ingredient.name,
-        "barcodes": { 
-            barcode.barcode: { 
+        "barcodes": {
+            barcode.barcode: {
                 "name": get_barcode_name(barcode.barcode),
                 "size": barcode.size,
                 "unit": barcode.unit,
-            } for barcode in ingredient.barcodes 
+            }
+            for barcode in ingredient.barcodes
         },
     }
     return Response(json.dumps(ingredient_data), content_type="application/json")
@@ -765,12 +642,13 @@ def unlink_ingredient():
     ingredient_data = {
         "id": ingredient.id,
         "name": ingredient.name,
-        "barcodes": { 
-            barcode.barcode: { 
+        "barcodes": {
+            barcode.barcode: {
                 "name": get_barcode_name(barcode.barcode),
                 "size": barcode.size,
                 "unit": barcode.unit,
-            } for barcode in ingredient.barcodes 
+            }
+            for barcode in ingredient.barcodes
         },
     }
     return Response(json.dumps(ingredient_data), content_type="application/json")
@@ -861,7 +739,7 @@ def get_barcodes_by_ingredient_name():
 
     barcodes = [barcode.barcode for barcode in ingredient.barcodes]
     return Response(json.dumps(barcodes), content_type="application/json")
-    
+
 
 @app.route("/api/link_ingredient_to_barcode", methods=["POST"])
 def link_ingredient_to_barcode():

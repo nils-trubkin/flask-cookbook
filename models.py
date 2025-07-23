@@ -1,18 +1,35 @@
-from flask_sqlalchemy import SQLAlchemy
+"""Database models for the application using Flask-SQLAlchemy."""
+
+# pylint: disable=too-many-instance-attributes
+
 from dataclasses import dataclass, field
+from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
 # Association table between Ingredients and Barcodes
 ingredient_barcodes = db.Table(
-    'ingredient_barcodes',
-    db.Column('ingredient_id', db.Integer, db.ForeignKey('ingredients.id', ondelete="CASCADE"), primary_key=True),
-    db.Column('barcode_id', db.Integer, db.ForeignKey('barcodes.id', ondelete="CASCADE"), primary_key=True),
-    db.Column('unit', db.String(20), nullable=True)
+    "ingredient_barcodes",
+    db.Column(
+        "ingredient_id",
+        db.Integer,
+        db.ForeignKey("ingredients.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    db.Column(
+        "barcode_id",
+        db.Integer,
+        db.ForeignKey("barcodes.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    db.Column("unit", db.String(20), nullable=True),
 )
+
 
 @dataclass
 class Recipes(db.Model):
+    """Model representing recipes with associated tags and file paths."""
+
     __tablename__ = "recipes"
 
     id: int = field(init=False)
@@ -25,8 +42,11 @@ class Recipes(db.Model):
     file_path = db.Column(db.String(120), nullable=False)
     tags = db.Column(db.String(200))  # Comma-separated tags
 
+
 @dataclass
 class Ingredients(db.Model):
+    """Model representing ingredients used in recipes."""
+
     __tablename__ = "ingredients"
 
     id: int = field(init=False)
@@ -36,13 +56,14 @@ class Ingredients(db.Model):
     name = db.Column(db.String(80), nullable=False, unique=True)
 
     barcodes = db.relationship(
-        "Barcodes",
-        secondary=ingredient_barcodes,
-        back_populates="ingredients"
+        "Barcodes", secondary=ingredient_barcodes, back_populates="ingredients"
     )
+
 
 @dataclass
 class Barcodes(db.Model):
+    """Model representing barcodes associated with ingredients."""
+
     __tablename__ = "barcodes"
 
     id: int = field(init=False)
@@ -56,13 +77,14 @@ class Barcodes(db.Model):
     unit = db.Column(db.String(20), nullable=False)
 
     ingredients = db.relationship(
-        "Ingredients",
-        secondary=ingredient_barcodes,
-        back_populates="barcodes"
+        "Ingredients", secondary=ingredient_barcodes, back_populates="barcodes"
     )
+
 
 @dataclass
 class RecipesIngredients(db.Model):
+    """Model representing the association between recipes and ingredients."""
+
     __tablename__ = "recipe_ingredients"
 
     id: int = field(init=False)
@@ -72,13 +94,20 @@ class RecipesIngredients(db.Model):
     unit: str
 
     id = db.Column(db.Integer, primary_key=True)
-    recipe_id = db.Column(db.Integer, db.ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False)
-    ingredient_id = db.Column(db.Integer, db.ForeignKey("ingredients.id", ondelete="CASCADE"), nullable=False)
+    recipe_id = db.Column(
+        db.Integer, db.ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False
+    )
+    ingredient_id = db.Column(
+        db.Integer, db.ForeignKey("ingredients.id", ondelete="CASCADE"), nullable=False
+    )
     size = db.Column(db.Float, nullable=False)
     unit = db.Column(db.String(20), nullable=False)
 
+
 @dataclass
 class Receipt(db.Model):
+    """Model representing a store receipt with associated items."""
+
     __tablename__ = "receipts"
 
     id: int = field(init=False)
@@ -99,10 +128,15 @@ class Receipt(db.Model):
     total = db.Column(db.Float, nullable=False)
     card = db.Column(db.String(20), nullable=False)
 
-    items = db.relationship("StoreItem", back_populates="receipt", cascade="all, delete-orphan")
+    items = db.relationship(
+        "StoreItem", back_populates="receipt", cascade="all, delete-orphan"
+    )
+
 
 @dataclass
 class StoreItem(db.Model):
+    """Model representing items in a store receipt."""
+
     __tablename__ = "store_items"
 
     id: int = field(init=False)
@@ -125,6 +159,7 @@ class StoreItem(db.Model):
     discount_name = db.Column(db.String(50))
     discount_value = db.Column(db.Float, default=0.0)
 
-    receipt_id = db.Column(db.Integer, db.ForeignKey("receipts.id", ondelete="CASCADE"), nullable=False)
+    receipt_id = db.Column(
+        db.Integer, db.ForeignKey("receipts.id", ondelete="CASCADE"), nullable=False
+    )
     receipt = db.relationship("Receipt", back_populates="items")
-

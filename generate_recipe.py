@@ -96,9 +96,7 @@ def parse_markdown(md_file):
                 formatted_tag = tag_lower.replace("-", " ")
                 ingredient_id = add_ingredient_to_db(tag_lower)
                 size, unit = parse_size_and_unit(tag_split[0].strip())
-                ingredient_id_size_units.append(
-                    (ingredient_id, size, unit)
-                )
+                ingredient_id_size_units.append((ingredient_id, size, unit))
                 ingredient = ingredient.replace(f"@{tag}", formatted_tag)
             ingredients.append(ingredient)
         elif section == "instructions" and line:  # Instruction line

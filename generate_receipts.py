@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import pymupdf
-from model import db, Receipt, StoreItem
+from models import db, Receipt, StoreItem
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 

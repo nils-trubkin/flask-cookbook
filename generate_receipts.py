@@ -3,16 +3,9 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import pymupdf
-from sqlalchemy import (
-    create_engine,
-    Column,
-    Integer,
-    String,
-    Float,
-    ForeignKey,
-    UniqueConstraint,
-)
-from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from model import db, Receipt, StoreItem
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(BASE_DIR, "recipes.db")
@@ -20,58 +13,8 @@ DATABASE_PATH = os.path.join(BASE_DIR, "recipes.db")
 load_dotenv()
 RECEIPTS_DIR = os.getenv("RECEIPTS_DIR")
 
-Base = declarative_base()
-
-
-class Receipt(Base):
-    __tablename__ = "receipts"
-    id = Column(Integer, primary_key=True)
-    store = Column(String, nullable=False)
-    date = Column(String, nullable=False)
-    time = Column(String, nullable=False)
-    number = Column(String, nullable=False)
-    discount = Column(Float, nullable=False)
-    total = Column(Float, nullable=False)
-    card = Column(String, nullable=False)
-    __table_args__ = (
-        UniqueConstraint(
-            "store",
-            "date",
-            "time",
-            "number",
-            "discount",
-            "total",
-            "card",
-            name="_receipt_uc",
-        ),
-    )
-
-    items = relationship(
-        "StoreItem", back_populates="receipt", cascade="all, delete-orphan"
-    )
-
-
-class StoreItem(Base):
-    __tablename__ = "store_items"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    barcode = Column(String, nullable=False)
-    price = Column(Float, nullable=False)
-    quantity = Column(Float, nullable=False)
-    unit = Column(String, nullable=False)
-    total = Column(Float, nullable=False)
-    discount_name = Column(String)
-    discount_value = Column(Float)
-    receipt_id = Column(
-        Integer, ForeignKey("receipts.id", ondelete="CASCADE"), nullable=False
-    )
-
-    receipt = relationship("Receipt", back_populates="items")
-
-
-# Set up DB
 engine = create_engine(f"sqlite:///{DATABASE_PATH}")
-Base.metadata.create_all(engine)
+db.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 
 

@@ -32,7 +32,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 os.environ["BROWSER"] = "chromium-browser"
 os.environ["GIT_SSH"] = "/home/dietpi/gitssh.sh"
 os.environ["DISPLAY"] = ":0.0"
-db = SQLAlchemy(app)
+db.init_app(app)
 commands = []  # Queue for commands to be executed
 
 

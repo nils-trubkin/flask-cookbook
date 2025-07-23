@@ -151,61 +151,60 @@ def parse_size_and_unit(size_str):
 
 def generate_html_output(md_file, output_file, template_file, image_file=None):
     """
-    Generate an HTML file with the desired template structure from the markdown content.
+    Generate an HTML file from markdown content using a template.
+    Returns:
+        name, ingredient_links (tuples), tags
     """
-    # Parse markdown content into name, ingredients, and instructions
-    name, ingredients, ingredient_id_size_units, instructions, tags = parse_markdown(
-        md_file
-    )
+    # Parse markdown into structured data
+    parsed = parse_markdown(md_file)
 
-    # Read the template
+    # Read HTML template
     with open(template_file, "r", encoding="utf-8") as f:
         template = f.read()
 
-    # Generate the content for each block
+    # Generate HTML content blocks
     image_tag = (
         f"""
         <img class="recipe-main" src="{{{{ url_for('static',
-        filename='images/{os.path.basename(image_file)}') }}}}" alt="{name} image">
+        filename='images/{os.path.basename(image_file)}') }}}}" alt="{parsed['name']} image">
         """
         if image_file
         else ""
     )
 
     ingredients_html = "\n".join(
-        [f"<li>{ingredient}</li>" for ingredient in ingredients]
+        [f"<li>{ingredient}</li>" for ingredient in parsed["ingredients"]]
     )
 
     instructions_html = "\n".join(
-        [f"<p>{instruction}</p>" for instruction in instructions]
+        [f"<p>{instruction}</p>" for instruction in parsed["instructions"]]
     )
 
-    # Replace the placeholders in the template with actual content
+    # Fill template placeholders
     output_html = template
-    output_html = output_html.replace("{name}", name)
+    output_html = output_html.replace("{name}", parsed["name"])
     output_html = output_html.replace("{image_tag}", image_tag)
     output_html = output_html.replace("{ingredients_html}", ingredients_html)
     output_html = output_html.replace("{instructions_html}", instructions_html)
 
-    # Write the generated HTML to the output file
+    # Write HTML output
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(output_html)
 
-    # Copy the image to /static folder while downsampling it to 400px width
+    # Optionally copy image to static/images/ with downscale
     if image_file:
         os.system(
             f"convert {image_file} -resize 400x static/images/{os.path.basename(image_file)}"
         )
 
-    return name, ingredient_id_size_units, tags
+    return parsed["name"], parsed["ingredient_links"], parsed["tags"]
 
 
 def parse_args():
-    """Parse command line arguments and call the main function."""
+    """Parse CLI args and generate recipe output."""
     if len(sys.argv) < 4 or len(sys.argv) > 5:
         print(
-            "Usage: python generate_recipe.py <markdown_file> <output_file> <template_file> \
-[image_file]"
+            "Usage: python generate_recipe.py <markdown_file> <output_file> <template_file> [image_file]"
         )
         sys.exit(1)
 
@@ -214,19 +213,17 @@ def parse_args():
     template_file = sys.argv[3]
     image_file = sys.argv[4] if len(sys.argv) == 5 else None
 
-    # Ensure the database is set up
     setup_database()
 
-    name, ingredient_id_size_units, tags = generate_html_output(
+    name, ingredient_links, tags = generate_html_output(
         md_file, output_file, template_file, image_file
     )
 
-    # Update the database with the new recipe
-    recipe_id = update_recipe_in_database(name, output_file.split("/")[-1], tags)
+    recipe_id = update_recipe_in_database(name, os.path.basename(output_file), tags)
 
-    # Add recipe ingredients to the database
-    for ingredient_id, size, unit in ingredient_id_size_units:
+    for ingredient_id, size, unit in ingredient_links:
         add_recipe_ingredient_to_db(recipe_id, ingredient_id, size, unit)
+
     print(f"🍽️ Recipe '{name}' generated successfully and saved to {output_file}.")
 
 

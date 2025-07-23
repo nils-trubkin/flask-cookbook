@@ -3,9 +3,9 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import pymupdf
-from models import db, Receipt, StoreItem
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
+from models import db, Receipt, StoreItem
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(BASE_DIR, "recipes.db")
@@ -78,8 +78,21 @@ def extract_metadata(text):
 def extract_items(text):
     """Extracts items from the receipt text using regex."""
     pattern = re.compile(
-        r"(?P<discount>\*?)(?P<name>.*?)\s+(?P<barcode>\d{13})\s+(?P<price>[\d,]+)\s+(?P<quantity>[\d,]+)\s+(?P<unit>\S+)\s+(?P<total>[\d,]+)(?:\n|Total)(?:(?P<discount_name>.*?)\s+-(?P<discount_total>[\d,]+))?",
-        re.MULTILINE,
+        r"""
+        (?P<discount>\*?)                      # Optional discount asterisk
+        (?P<name>.*?)\s+                       # Item name
+        (?P<barcode>\d{13})\s+                 # 13-digit barcode
+        (?P<price>[\d,]+)\s+                   # Unit price with comma
+        (?P<quantity>[\d,]+)\s+                # Quantity with comma
+        (?P<unit>\S+)\s+                       # Unit (e.g., g, kg, st)
+        (?P<total>[\d,]+)                      # Total with comma
+        (?:\n|Total)                           # Newline or "Total" word
+        (?:
+            (?P<discount_name>.*?)\s+          # Discount name (optional)
+            -(?P<discount_total>[\d,]+)        # Discount value (optional)
+        )?
+    """,
+        re.MULTILINE | re.VERBOSE,
     )
     items = []
     for match in pattern.finditer(text):
@@ -108,8 +121,20 @@ def extract_items(text):
 def extract_items_old(text):
     """Extract items from receipt text using regex."""
     pattern = re.compile(
-        r"(?P<discount>\*?)(?P<name>.*?)\s+(?P<barcode>\d{13})\s+(?P<price>[\d.]+)\s+(?P<quantity>[\d.]+)\s+(?P<unit>\S+)\s+(?P<total>[\d.]+)(?:\n|Total)(?:(?P<discount_name>.*?)\s+- (?P<discount_total>[\d.]+))?",
-        re.MULTILINE,
+        r"""(?P<discount>\*?)                 # Optional discount asterisk
+        (?P<name>.*?)\s+                      # Item name
+        (?P<barcode>\d{13})\s+                # 13-digit barcode
+        (?P<price>[\d.]+)\s+                  # Unit price with dot
+        (?P<quantity>[\d.]+)\s+               # Quantity with dot
+        (?P<unit>\S+)\s+                      # Unit (e.g., g, kg, st)
+        (?P<total>[\d.]+)                     # Total with dot
+        (?:\n|Total)                          # Newline or "Total" word
+        (?:
+            (?P<discount_name>.*?)\s+-        # Discount name (optional)
+            (?P<discount_total>[\d.]+)        # Discount value (optional)
+        )?
+    """,
+        re.MULTILINE | re.VERBOSE,
     )
     items = []
     for match in pattern.finditer(text):

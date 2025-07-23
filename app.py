@@ -24,6 +24,8 @@ DATABASE_PATH = os.path.join(BASE_DIR, "recipes.db")
 
 load_dotenv()
 RECIPES_DIR = os.getenv("RECIPES_DIR")
+FLASK_HOST = os.getenv("FLASK_HOST")
+FLASK_PORT = os.getenv("FLASK_PORT")
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DATABASE_PATH}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -785,4 +787,4 @@ def error(e):
 
 if __name__ == "__main__":
     os.chdir(BASE_DIR)
-    app.run(host="0.0.0.0", port=8001)
+    app.run(host=FLASK_HOST, port=int(FLASK_PORT), debug=True, use_reloader=False)

@@ -5,7 +5,8 @@ After=network.target
 [Service]
 User=dietpi
 WorkingDirectory=/var/www/html/flask-cookbook
-ExecStart=/var/www/html/flask-cookbook/venv/bin/python3 /var/www/html/flask-cookbook/venv/bin/gunicorn -w 4 -b 0.0.0.0:8001 app:app
+EnvironmentFile=/var/www/html/flask-cookbook/.env
+ExecStart=/var/www/html/flask-cookbook/venv/bin/gunicorn -w ${FLASK_WORKERS} -b ${FLASK_HOST}:${FLASK_PORT} app:app
 Restart=always
 Environment=FLASK_APP=/var/www/html/flask-cookbook
 Environment=FLASK_ENV=production
@@ -14,4 +15,3 @@ StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
-

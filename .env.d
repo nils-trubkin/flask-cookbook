@@ -1,6 +1,7 @@
 # Server configuration
-FLASK_PROTOCOL="http"
-FLASK_HOST="0.0.0.0"
+HOSTNAME=your-hostname
+FLASK_PROTOCOL=http
+FLASK_HOST=0.0.0.0
 FLASK_PORT=8001
 FLASK_WORKERS=4
 

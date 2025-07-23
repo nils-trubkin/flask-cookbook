@@ -204,7 +204,8 @@ def parse_args():
     """Parse CLI args and generate recipe output."""
     if len(sys.argv) < 4 or len(sys.argv) > 5:
         print(
-            "Usage: python generate_recipe.py <markdown_file> <output_file> <template_file> [image_file]"
+            "Usage: python generate_recipe.py <markdown_file> <output_file> "
+            "<template_file> [image_file]"
         )
         sys.exit(1)
 

@@ -12,7 +12,7 @@ RECIPES_DIR=recipes
 RECEIPTS_DIR=receipts
 
 # Env variables for the backup part
-BACKUP_DIR=backup
+BACKUP_DIR=backups
 
 # Env variables for the PicoVoice SDK
 PICOVOICE_ACCESS_KEY=your-secret-api-key

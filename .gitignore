@@ -5,6 +5,9 @@ static/images/*.jpg
 # Certs
 certs/
 
+# Backups
+backups/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

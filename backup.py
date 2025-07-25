@@ -1,11 +1,12 @@
 """Backup and restore ingredient barcodes and their links to ingredients."""
 
 import json
-from sqlalchemy.orm import Session
+from app import app
 from models import db, Ingredients, Barcodes
 
 BACKUP_FILE = "ingredient_barcodes_backup.json"
-session: Session = db.session
+with app.app_context():
+    session: Session = db.session
 
 
 def backup_to_file(file_path=BACKUP_FILE):

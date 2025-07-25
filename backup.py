@@ -2,6 +2,7 @@
 
 import json
 from app import app
+from sqlalchemy.orm import Session
 from models import db, Ingredients, Barcodes
 
 BACKUP_FILE = "ingredient_barcodes_backup.json"

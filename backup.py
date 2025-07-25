@@ -1,14 +1,19 @@
 """Backup and restore ingredient barcodes and their links to ingredients."""
 
 import json
+from pathlib import Path
+from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from models import db, Ingredients, Barcodes
 from app import app
 
+load_dotenv()
 BACKUP_FILE = "ingredient_barcodes_backup.json"
+BACKUP_DIR = "backups"
+BACKUP_PATH = Path(BACKUP_DIR) / BACKUP_FILE
 
 
-def backup_to_file(file_path=BACKUP_FILE):
+def backup_to_file(file_path=BACKUP_PATH):
     """Export all barcodes and their links to ingredients to a JSON file."""
     with app.app_context():
         session: Session = db.session
@@ -39,7 +44,7 @@ def backup_to_file(file_path=BACKUP_FILE):
         )
 
 
-def restore_from_file(file_path=BACKUP_FILE):
+def restore_from_file(file_path=BACKUP_PATH):
     """Restore barcodes and their links from a JSON file."""
     with app.app_context():
         session: Session = db.session

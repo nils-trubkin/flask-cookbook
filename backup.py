@@ -1,20 +1,25 @@
 """Backup and restore ingredient barcodes and their links to ingredients."""
 
 import json
-from pathlib import Path
+import os
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from models import db, Ingredients, Barcodes
 from app import app
 
-load_dotenv()
 BACKUP_FILE = "ingredient_barcodes_backup.json"
-BACKUP_DIR = "backups"
-BACKUP_PATH = Path(BACKUP_DIR) / BACKUP_FILE
+load_dotenv()
+BACKUP_DIR = os.getenv("BACKUP_DIR")
+BACKUP_PATH = os.path.join(BACKUP_DIR, BACKUP_FILE)
 
 
 def backup_to_file(file_path=BACKUP_PATH):
     """Export all barcodes and their links to ingredients to a JSON file."""
+    # Ensure the backup directory exists
+    if not BACKUP_DIR:
+        raise ValueError("BACKUP_DIR environment variable is not set.")
+    if not os.path.exists(BACKUP_DIR):
+        os.makedirs(BACKUP_DIR)
     with app.app_context():
         session: Session = db.session
         # Export all barcodes

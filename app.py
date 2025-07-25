@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, Response
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import OperationalError
 from models import (
     db,

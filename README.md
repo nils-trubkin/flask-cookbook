@@ -99,6 +99,14 @@ BACKUP_DIR=backups                  # Directory for ingredient barcode backups
 PICOVOICE_ACCESS_KEY=<your-api-key>
 WAKE_WORD_FILE=Hey-Cookbook_en_raspberry-pi_v3_0_0.ppn
 MODEL_FILE=<optional-model-file>
+
+# Hue Bridge (optional, for voice-controlled lights)
+HUE_BRIDGE_IP=<bridge-ip>            # IP address of your Hue Bridge
+HUE_BRIDGE_ID=<bridge-id>            # Bridge ID (printed on the bridge)
+HUE_BRIDGE_FLASK_DEVICE_NAME=<name>  # Name of the light to control
+
+# Weather (optional, for voice command "weather")
+WEATHER_URL=<full-url>               # URL to open for weather (e.g. yr.no)
 ```
 
 ## Wake word
@@ -108,6 +116,21 @@ Custom word model file for Porcupine can be downloaded from [PicoVoice](https://
 # .env
 WAKE_WORD_FILE=<name-of-wake-word-file>
 ```
+
+## Hue Bridge & Weather
+
+The voice assistant can control Philips Hue lights and open a weather page.
+
+**Setup:**
+1. Place `huebridge_cacert_bundle.pem` (included) in the project root
+2. Set `HUE_BRIDGE_IP`, `HUE_BRIDGE_ID`, and `HUE_BRIDGE_FLASK_DEVICE_NAME` in `.env`
+3. Press the link button on your Hue Bridge before the first run — the app auto-registers and discovers the light service
+4. (Optional) Set `WEATHER_URL` for the "weather" voice command
+
+**Voice commands:**
+- _"off"_ — turns off the configured Hue light
+- _"weather"_ — opens the weather URL in the browser
+- The Hue light turns on automatically when the wake word is detected
 
 ## Tagging system
 Recipes can optionally be tagged with categories, tags are defined in the recipe file with the `## Tags` header, for example:

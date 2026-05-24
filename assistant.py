@@ -13,10 +13,14 @@ from dotenv import load_dotenv
 from num2words import num2words as n2w
 from vosk import Model, KaldiRecognizer
 from word2number import w2n
+from hue import HueBridge
+from weather import Weather
 
 load_dotenv()
 os.environ["BROWSER"] = "chromium-browser"
 os.environ["DISPLAY"] = ":0.0"
+hue = HueBridge()
+weather = Weather()
 ACCESS_KEY = os.getenv("PICOVOICE_ACCESS_KEY")
 WAKE_WORD_FILE = os.getenv("WAKE_WORD_FILE")
 MODEL_FILE = os.getenv("MODEL_FILE")
@@ -114,6 +118,8 @@ def get_grammar():
         "up",
         "down",
         "timer",
+        "off",
+        "weather",
     ]
     grammar = str(all_numbers + keywords).replace("'", '"')
     return grammar
@@ -200,6 +206,12 @@ def parse(result: str):
             # if "stop" in result.lower():
             #     print("Stopping.")
             #     break
+    elif "weather" in result:
+        weather.open()
+    elif "off" in result:
+        hue.turn_off()
+    else:
+        push_notification("Unrecognized command", result)
 
 
 def vosk_listen(stream, recognizer):
@@ -242,6 +254,7 @@ def loop(porcupine, audio, stream, recognizer):
             # If the keyword is detected, the index will be >= 0
             if keyword_index >= 0:
                 print("Wake word detected! Listening for speech...")
+                hue.turn_on()
                 led(1)
                 push_notification("Wake word detected", "Listening for command...")
                 vosk_listen(stream, recognizer)

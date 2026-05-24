@@ -116,6 +116,7 @@ ExecStart=/var/www/html/flask-cookbook/venv/bin/python3 /var/www/html/flask-cook
 b 0.0.0.0:8001 app:app --certfile=certs/cert.pem --keyfile=certs/cert.key
 ```
 Alternatively, you can use a reverse proxy like nginx to handle TLS termination and forward requests to the Flask app.
+Remember to change kiosk home page to the current hostname for it to work since 'localhost' will fail cert.
 
 ## License
 Apache License 2.0

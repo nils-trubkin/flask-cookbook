@@ -20,6 +20,9 @@ os.environ["DISPLAY"] = ":0.0"
 ACCESS_KEY = os.getenv("PICOVOICE_ACCESS_KEY")
 WAKE_WORD_FILE = os.getenv("WAKE_WORD_FILE")
 MODEL_FILE = os.getenv("MODEL_FILE")
+FLASK_PORT = os.getenv("FLASK_PORT")
+FLASK_PROTOCOL = os.getenv("FLASK_PROTOCOL")
+HOSTNAME = os.getenv("HOSTNAME")
 
 # Absolute path to the database
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -160,7 +163,7 @@ def parse(result: str):
         "recipes" in result or "recipe" in result
     ):
         print("Showing all recipes")
-        xdg_open("http://localhost:8001/grid")
+        xdg_open(f"{FLASK_PROTOCOL}://{HOSTNAME}:{FLASK_PORT}/grid")
     elif "number" in result:
         # Extract the first matching word from the result
 
@@ -170,7 +173,7 @@ def parse(result: str):
             print(f"Could not convert '{result}' to a number")
         print(f"Showing recipe number {number}")
         # Execute in the background
-        xdg_open(f"http://localhost:8001/recipes/{number}")
+        xdg_open(f"{FLASK_PROTOCOL}://{HOSTNAME}:{FLASK_PORT}/recipes/{number}")
     elif "scroll" in result:
         if "up" in result:
             print("Scrolling up")
@@ -183,7 +186,7 @@ def parse(result: str):
         try:
             duration = w2n.word_to_num(result)
             response = requests.post(
-                "http://localhost:8001/commands",
+                f"{FLASK_PROTOCOL}://{HOSTNAME}:{FLASK_PORT}/commands",
                 json={"action": "timer", "duration": duration},
                 timeout=5,
             )

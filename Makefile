@@ -32,5 +32,10 @@ $(GENERATED_DIR)/%.html: $(RECIPES_DIR)/%.md $(GENERATED_DIR)
 clean:
 	rm -f $(GENERATED_DIR)/*.html
 	rm -f $(STATIC_DIR)/images/*.jpg
-	rm -f recipes.db
-
+	sqlite3 recipes.db "DROP TABLE IF EXISTS barcodes; \
+		DROP TABLE IF EXISTS receipts; \
+		DROP TABLE IF EXISTS store_items; \
+		DROP TABLE IF EXISTS ingredient_barcodes; \
+		DROP TABLE IF EXISTS recipe_ingredients; \
+		DROP TABLE IF EXISTS ingredients; \
+		DROP TABLE IF EXISTS recipes;"

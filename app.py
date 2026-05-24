@@ -7,32 +7,34 @@ from dataclasses import dataclass
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, Response
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import OperationalError
+from models import (
+    db,
+    Recipes,
+    Ingredients,
+    RecipesIngredients,
+    Barcodes,
+    StoreItem,
+    Receipt,
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(BASE_DIR, "recipes.db")
 
 load_dotenv()
 RECIPES_DIR = os.getenv("RECIPES_DIR")
+FLASK_PROTOCOL = os.getenv("FLASK_PROTOCOL")
+HOSTNAME = os.getenv("HOSTNAME")
+FLASK_HOST = os.getenv("FLASK_HOST")
+FLASK_PORT = os.getenv("FLASK_PORT")
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DATABASE_PATH}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 os.environ["BROWSER"] = "chromium-browser"
 os.environ["GIT_SSH"] = "/home/dietpi/gitssh.sh"
 os.environ["DISPLAY"] = ":0.0"
-db = SQLAlchemy(app)
-commands = []
-
-
-@dataclass
-class Recipes(db.Model):
-    """Database model for recipes"""
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), nullable=False)
-    file_path = db.Column(db.String(120), nullable=False)
-    tags = db.Column(db.String(200))  # Comma-separated tags
+db.init_app(app)
+commands = []  # Queue for commands to be executed
 
 
 @dataclass
@@ -224,7 +226,16 @@ def view_recipe(recipe):
         recipe = sorted([recipe.file_path for recipe in Recipes.query.all()])[
             int(recipe) - 1
         ].split(".")[0]
-    return xdg_open(f"http://localhost:8001/view/{recipe}")
+    return xdg_open(f"{FLASK_PROTOCOL}://{HOSTNAME}:{FLASK_PORT}/view/{recipe}")
+
+
+@app.route("/api/recipes", methods=["POST"])
+def view_recipe_api():
+    """Adapter for viewing a recipe via API"""
+    name = request.args.get("name")
+    if not name:
+        return error("Recipe name is required")
+    return xdg_open(f"{FLASK_PROTOCOL}://{HOSTNAME}:{FLASK_PORT}/view/{name}")
 
 
 @app.route("/view/<recipe>")
@@ -291,6 +302,475 @@ def get_commands():
     return Response(json.dumps({}), content_type="application/json")
 
 
+@app.route("/api/receipts", methods=["GET"])
+def get_receipts():
+    """Get all receipts"""
+    receipts = Receipt.query.all()
+    receipts_list = [
+        {
+            "id": receipt.id,
+            "store": receipt.store,
+            "date": receipt.date,
+            "time": receipt.time,
+            "number": receipt.number,
+            "discount": receipt.discount,
+            "total": receipt.total,
+            "card": receipt.card,
+            "items": [
+                {
+                    "id": item.id,
+                    "name": item.name,
+                    "barcode": item.barcode,
+                    "price": item.price,
+                    "quantity": item.quantity,
+                    "unit": item.unit,
+                    "total": item.total,
+                    "discount_name": item.discount_name,
+                    "discount_value": item.discount_value,
+                    "receipt_id": item.receipt_id,
+                }
+                for item in receipt.items
+            ],
+        }
+        for receipt in receipts
+    ]
+    return Response(json.dumps(receipts_list), content_type="application/json")
+
+
+@app.route("/api/receipt", methods=["GET"])
+def get_receipt():
+    """Get a specific receipt by id"""
+    receipt_id = request.args.get("id")
+    if not receipt_id:
+        return error("Receipt ID is required")
+
+    receipt = Receipt.query.get(receipt_id)
+    if not receipt:
+        return error("Receipt not found")
+
+    receipt_data = {
+        "id": receipt.id,
+        "store": receipt.store,
+        "date": receipt.date,
+        "time": receipt.time,
+        "number": receipt.number,
+        "discount": receipt.discount,
+        "total": receipt.total,
+        "card": receipt.card,
+        "items": [
+            {
+                "id": item.id,
+                "name": item.name,
+                "barcode": item.barcode,
+                "price": item.price,
+                "quantity": item.quantity,
+                "unit": item.unit,
+                "total": item.total,
+                "discount_name": item.discount_name,
+                "discount_value": item.discount_value,
+                "receipt_id": item.receipt_id,
+            }
+            for item in receipt.items
+        ],
+    }
+    return Response(json.dumps(receipt_data), content_type="application/json")
+
+
+@app.route("/api/recipes", methods=["GET"])
+def get_recipes():
+    """Get all recipes"""
+    recipes = Recipes.query.all()
+    recipes_list = [
+        {
+            "id": recipe.id,
+            "name": recipe.name,
+            "url": f"{recipe.file_path.split('.')[0]}",
+            "ingredients": [
+                {
+                    "id": ri.id,
+                    "name": ing.name,
+                    "size": ri.size,
+                    "unit": ri.unit,
+                    "info": get_latest_ingredient_info(ing.id),
+                }
+                for ri in RecipesIngredients.query.filter_by(recipe_id=recipe.id).all()
+                for ing in Ingredients.query.filter_by(id=ri.ingredient_id).all()
+            ],
+            "tags": recipe.tags,
+        }
+        for recipe in recipes
+    ]
+    return Response(json.dumps(recipes_list), content_type="application/json")
+
+
+@app.route("/api/recipe", methods=["GET"])
+def get_recipe():
+    """Get a specific recipe by id"""
+    recipe_id = request.args.get("id")
+    if not recipe_id:
+        return error("Recipe ID is required")
+
+    recipe = Recipes.query.get(recipe_id)
+    if not recipe:
+        return error("Recipe not found")
+
+    recipe_ingredients = RecipesIngredients.query.filter_by(recipe_id=recipe.id).all()
+    recipe_data = {
+        "id": recipe.id,
+        "name": recipe.name,
+        "url": f"{recipe.file_path.split('.')[0]}",
+        "ingredients": [  # recipe ingredients
+            {
+                "id": ing.id,
+                "name": ing.name,
+                "size": ri.size,
+                "unit": ri.unit,
+                "info": get_latest_ingredient_info(ing.id),
+            }
+            for ri in recipe_ingredients
+            for ing in Ingredients.query.filter_by(id=ri.ingredient_id).all()
+        ],
+        "tags": recipe.tags,
+    }
+    return Response(json.dumps(recipe_data), content_type="application/json")
+
+
+def get_latest_ingredient_info(ingredient_id):
+    """Get the latest store item info for an ingredient by id"""
+    ingredient = Ingredients.query.get(ingredient_id)
+    if not ingredient:
+        return None
+
+    barcodes = ingredient.barcodes
+    if not barcodes:
+        return None
+
+    store_items = StoreItem.query.filter(
+        StoreItem.barcode.in_([barcode.barcode for barcode in barcodes])
+    ).all()
+
+    if not store_items:
+        return None
+
+    # Zip store items with their barcodes to get size and unit
+    store_items_info = [
+        (item, Barcodes.query.filter_by(barcode=item.barcode).first())
+        for item in store_items
+    ]
+
+    # Get the store item with the lowest normalized price
+    lowest_price_item = get_cheapest_ingredient_normalized(store_items_info)
+
+    barcode = Barcodes.query.filter_by(barcode=lowest_price_item.barcode).first()
+
+    if not barcode:
+        return None
+
+    return {
+        "name": lowest_price_item.name,
+        "price": lowest_price_item.price,
+        "barcode": lowest_price_item.barcode,
+        "size": barcode.size,
+        "unit": barcode.unit,
+    }
+
+
+def get_cheapest_ingredient_normalized(store_items_info):
+    """Get the cheapest ingredient normalized by size"""
+    if not store_items_info:
+        return None
+
+    cheapest_item = None
+    cheapest_price = 0
+
+    for item, barcode in store_items_info:
+        if not barcode or not barcode.size:
+            continue
+        size = barcode.size if barcode.size > 0 else 1
+        unit_multiplier = 1000 if barcode.unit in ["g", "ml"] else 1
+        normalized_price = (item.price / size) * unit_multiplier
+        if cheapest_item is None or normalized_price < cheapest_price:
+            cheapest_item = item
+            cheapest_price = normalized_price
+
+    return cheapest_item
+
+
+@app.route("/api/ingredients", methods=["GET"])
+def get_ingredients():
+    """Get all ingredients"""
+    ingredients = Ingredients.query.all()
+    ingredients_list = [
+        {
+            "id": ing.id,
+            "name": ing.name,
+            "barcodes": {
+                barcode.barcode: {
+                    "name": get_barcode_name(barcode.barcode),
+                    "size": barcode.size,
+                    "unit": barcode.unit,
+                }
+                for barcode in ing.barcodes
+            },
+        }
+        for ing in ingredients
+    ]
+    return Response(json.dumps(ingredients_list), content_type="application/json")
+
+
+def get_barcode_name(barcode):
+    """Get the latest store item name by barcode"""
+    store_item = (
+        StoreItem.query.filter_by(barcode=barcode).order_by(StoreItem.id.desc()).first()
+    )
+    return store_item.name if store_item else None
+
+
+@app.route("/api/unlinked_ingredients", methods=["GET"])
+def get_unlinked_ingredients():
+    """Get all ingredients that are not linked to any barcodes"""
+    unlinked_ingredients = Ingredients.query.filter(~Ingredients.barcodes.any()).all()
+    ingredients_list = [
+        {
+            "id": ing.id,
+            "name": ing.name,
+        }
+        for ing in unlinked_ingredients
+    ]
+    return Response(json.dumps(ingredients_list), content_type="application/json")
+
+
+@app.route("/api/ingredient", methods=["GET"])
+def get_ingredient():
+    """Get a specific ingredient by id"""
+    ingredient_id = request.args.get("id")
+    if not ingredient_id:
+        return error("Ingredient ID is required")
+
+    ingredient = Ingredients.query.get(ingredient_id)
+    if not ingredient:
+        return error("Ingredient not found")
+
+    ingredient_data = {
+        "id": ingredient.id,
+        "name": ingredient.name,
+        "barcodes": {
+            barcode.barcode: {
+                "name": get_barcode_name(barcode.barcode),
+                "size": barcode.size,
+                "unit": barcode.unit,
+            }
+            for barcode in ingredient.barcodes
+        },
+    }
+    return Response(json.dumps(ingredient_data), content_type="application/json")
+
+
+@app.route("/api/link_ingredient", methods=["POST"])
+def link_ingredient():
+    """Link an ingredient to a barcode"""
+    ingredient_id = request.args.get("ingredient_id")
+    if not ingredient_id:
+        return error("Ingredient ID is required")
+
+    barcode = request.args.get("barcode")
+    if not barcode:
+        return error("Barcode is required")
+
+    ingredient = Ingredients.query.get(ingredient_id)
+    if not ingredient:
+        return error("Ingredient not found")
+
+    size = request.args.get("size", "1.0")
+    unit = request.args.get("unit", "x")
+
+    barcode_entry = Barcodes.query.filter_by(barcode=barcode).first()
+    if not barcode_entry:
+        # If the barcode does not exist, create a new one
+        barcode_entry = Barcodes(barcode=barcode, size=float(size), unit=unit)
+        db.session.add(barcode_entry)
+        db.session.commit()
+
+    # Link the ingredient to the barcode
+    if barcode_entry not in ingredient.barcodes:
+        ingredient.barcodes.append(barcode_entry)
+        db.session.commit()
+
+    # Return the ingredient data
+    ingredient_data = {
+        "id": ingredient.id,
+        "name": ingredient.name,
+        "barcodes": {
+            barcode.barcode: {
+                "name": get_barcode_name(barcode.barcode),
+                "size": barcode.size,
+                "unit": barcode.unit,
+            }
+            for barcode in ingredient.barcodes
+        },
+    }
+    return Response(json.dumps(ingredient_data), content_type="application/json")
+
+
+@app.route("/api/unlink_ingredient", methods=["POST"])
+def unlink_ingredient():
+    """Unlink an ingredient from a barcode"""
+    ingredient_id = request.args.get("ingredient_id")
+    if not ingredient_id:
+        return error("Ingredient ID is required")
+
+    barcode = request.args.get("barcode")
+    if not barcode:
+        return error("Barcode is required")
+
+    ingredient = Ingredients.query.get(ingredient_id)
+    if not ingredient:
+        return error("Ingredient not found")
+
+    barcode_entry = Barcodes.query.filter_by(barcode=barcode).first()
+    if not barcode_entry:
+        return error("Barcode not found")
+
+    # Unlink the ingredient from the barcode
+    if barcode_entry in ingredient.barcodes:
+        ingredient.barcodes.remove(barcode_entry)
+        db.session.commit()
+
+    # If the barcode is not linked to any other ingredients, delete it
+    if not barcode_entry.ingredients:
+        db.session.delete(barcode_entry)
+        db.session.commit()
+
+    # Return the ingredient data
+    ingredient_data = {
+        "id": ingredient.id,
+        "name": ingredient.name,
+        "barcodes": {
+            barcode.barcode: {
+                "name": get_barcode_name(barcode.barcode),
+                "size": barcode.size,
+                "unit": barcode.unit,
+            }
+            for barcode in ingredient.barcodes
+        },
+    }
+    return Response(json.dumps(ingredient_data), content_type="application/json")
+
+
+@app.route("/api/update_barcode_size", methods=["POST"])
+def update_barcode_size():
+    """Update the size of a barcode"""
+    barcode = request.args.get("barcode")
+    if not barcode:
+        return error("Barcode is required")
+
+    size = request.args.get("size")
+    if not size:
+        return error("Size is required")
+
+    barcode_entry = Barcodes.query.filter_by(barcode=barcode).first()
+    if not barcode_entry:
+        return error("Barcode not found")
+    try:
+        size = float(size)
+    except ValueError:
+        return error("Size must be a number")
+    barcode_entry.size = size
+    db.session.commit()
+
+    return Response(json.dumps({"status": "success"}), content_type="application/json")
+
+
+@app.route("/api/store_items", methods=["GET"])
+def get_store_items():
+    """Get all store items"""
+    store_items = StoreItem.query.all()
+    items_list = [
+        {
+            "id": item.id,
+            "name": item.name,
+            "barcode": item.barcode,
+            "price": item.price,
+            "quantity": item.quantity,
+            "unit": item.unit,
+            "total": item.total,
+            "discount_name": item.discount_name,
+            "discount_value": item.discount_value,
+            "receipt_id": item.receipt_id,
+        }
+        for item in store_items
+    ]
+    return Response(json.dumps(items_list), content_type="application/json")
+
+
+@app.route("/api/store_item", methods=["GET"])
+def get_store_item():
+    """Get a specific store item by id"""
+    item_id = request.args.get("id")
+    if not item_id:
+        return error("Store Item ID is required")
+
+    item = StoreItem.query.get(item_id)
+    if not item:
+        return error("Store Item not found")
+
+    item_data = {
+        "id": item.id,
+        "name": item.name,
+        "barcode": item.barcode,
+        "price": item.price,
+        "quantity": item.quantity,
+        "unit": item.unit,
+        "total": item.total,
+        "discount_name": item.discount_name,
+        "discount_value": item.discount_value,
+        "receipt_id": item.receipt_id,
+    }
+    return Response(json.dumps(item_data), content_type="application/json")
+
+
+@app.route("/api/barcodes_by_ingredient_name", methods=["GET"])
+def get_barcodes_by_ingredient_name():
+    """Get all barcodes for a specific ingredient by name"""
+    ingredient_name = request.args.get("name")
+    if not ingredient_name:
+        return error("Ingredient name is required")
+
+    ingredient = Ingredients.query.filter_by(name=ingredient_name).first()
+    if not ingredient:
+        return error("Ingredient not found")
+
+    barcodes = [barcode.barcode for barcode in ingredient.barcodes]
+    return Response(json.dumps(barcodes), content_type="application/json")
+
+
+@app.route("/api/link_ingredient_to_barcode", methods=["POST"])
+def link_ingredient_to_barcode():
+    """Link an ingredient to a barcode"""
+    barcode = request.args.get("barcode")
+    if not barcode:
+        return error("Barcode is required")
+
+    ingredient_name = request.args.get("ingredient")
+    if not ingredient_name:
+        return error("Ingredient name is required")
+
+    ingredient = Ingredients.query.filter_by(name=ingredient_name).first()
+    if not ingredient:
+        return error("Ingredient not found")
+
+    barcode_entry = Barcodes.query.filter_by(barcode=barcode).first()
+    if not barcode_entry:
+        return error("Barcode not found")
+
+    # Link the ingredient to the barcode
+    if barcode_entry not in ingredient.barcodes:
+        ingredient.barcodes.append(barcode_entry)
+        db.session.commit()
+
+    return Response(json.dumps({"status": "success"}), content_type="application/json")
+
+
 def xdotool(cmd):
     """Run the xdotool command with the correct DISPLAY environment variable"""
     try:
@@ -308,4 +788,4 @@ def error(e):
 
 if __name__ == "__main__":
     os.chdir(BASE_DIR)
-    app.run(host="0.0.0.0", port=8001)
+    app.run(host=FLASK_HOST, port=int(FLASK_PORT), debug=True, use_reloader=False)

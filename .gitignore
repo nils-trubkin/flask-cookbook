@@ -1,3 +1,6 @@
+# opencode
+.opencode/
+
 # Makefile generated
 templates/recipes/
 static/images/*.jpg

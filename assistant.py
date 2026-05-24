@@ -6,7 +6,8 @@ import json
 import requests
 
 # import sqlite3
-import pvporcupine
+import openwakeword
+from openwakeword.model import Model as WakeWordModel
 import pyaudio
 import numpy as np
 from dotenv import load_dotenv
@@ -21,18 +22,16 @@ os.environ["BROWSER"] = "chromium-browser"
 os.environ["DISPLAY"] = ":0.0"
 hue = HueBridge()
 weather = Weather()
-ACCESS_KEY = os.getenv("PICOVOICE_ACCESS_KEY")
-WAKE_WORD_FILE = os.getenv("WAKE_WORD_FILE")
 MODEL_FILE = os.getenv("MODEL_FILE")
 FLASK_PORT = os.getenv("FLASK_PORT")
 FLASK_PROTOCOL = os.getenv("FLASK_PROTOCOL")
 HOSTNAME = os.getenv("HOSTNAME")
+WAKE_WORD_MODEL = os.getenv("WAKE_WORD_MODEL")
 
-# Absolute path to the database
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = f"{BASE_DIR}/recipes.db"
-WAKE_WORD_PATH = os.path.join(BASE_DIR, f"wake_words/{WAKE_WORD_FILE}")
 MODEL_PATH = os.path.join(BASE_DIR, f"models/{MODEL_FILE}")
+WAKE_WORD_PATH = os.path.join(BASE_DIR, WAKE_WORD_MODEL) if WAKE_WORD_MODEL else None
 LED_PATH = "/sys/class/leds/ACT/brightness"
 INPUT_DEVICE_INDEX = 1
 
@@ -126,11 +125,19 @@ def get_grammar():
 
 
 def init():
-    """Initialize Porcupine, PyAudio, and Vosk"""
-    # Initialize Porcupine with your wake word
-    porcupine = pvporcupine.create(
-        access_key=ACCESS_KEY, keyword_paths=[WAKE_WORD_PATH]
-    )
+    """Initialize openWakeWord, PyAudio, and Vosk"""
+    openwakeword.utils.download_models()
+
+    kwargs = {"inference_framework": "onnx"}
+    if WAKE_WORD_PATH and os.path.exists(WAKE_WORD_PATH):
+        print(f"Loading custom wake word model: {WAKE_WORD_PATH}")
+        oww_model = WakeWordModel(wakeword_models=[WAKE_WORD_PATH], **kwargs)
+    elif WAKE_WORD_PATH and not os.path.exists(WAKE_WORD_PATH):
+        print(f"Wake word model '{WAKE_WORD_PATH}' not found, falling back to 'alexa'")
+        oww_model = WakeWordModel(wakeword_models=["alexa"], **kwargs)
+    else:
+        print("No WAKE_WORD_MODEL configured, using built-in 'alexa' model")
+        oww_model = WakeWordModel(wakeword_models=["alexa"], **kwargs)
 
     # Set up PyAudio
     audio = pyaudio.PyAudio()
@@ -152,10 +159,10 @@ def init():
     )
     stream.start_stream()
 
-    print("Listening for 'Hey Cookbook'...")
+    print("Listening for wake word...")
     led(0)
     close_notifications()
-    return porcupine, audio, stream, recognizer
+    return oww_model, audio, stream, recognizer
 
 
 def parse(result: str):
@@ -240,19 +247,16 @@ def error(message: str):
         f.write(f"{message}\n")
 
 
-def loop(porcupine, audio, stream, recognizer):
+def loop(oww_model, audio, stream, recognizer):
     """Listen for the wake word and then listen for a command"""
     try:
         while True:
-            # Read audio data from the microphone (this should be 512 samples)
-            pcm = stream.read(512, exception_on_overflow=False)
+            pcm = stream.read(1280, exception_on_overflow=False)
             pcm = np.frombuffer(pcm, dtype=np.int16)
 
-            # Process the audio chunk with Porcupine
-            keyword_index = porcupine.process(pcm)
-
-            # If the keyword is detected, the index will be >= 0
-            if keyword_index >= 0:
+            # Process the audio chunk with openWakeWord
+            prediction = oww_model.predict(pcm)
+            if any(score > 0.5 for score in prediction.values()):
                 print("Wake word detected! Listening for speech...")
                 hue.turn_on()
                 led(1)
@@ -264,10 +268,9 @@ def loop(porcupine, audio, stream, recognizer):
         stream.stop_stream()
         stream.close()
         audio.terminate()
-        porcupine.delete()
         led(0)
 
 
 if __name__ == "__main__":
-    _porcupine, _audio, _stream, _recognizer = init()
-    loop(_porcupine, _audio, _stream, _recognizer)
+    _oww_model, _audio, _stream, _recognizer = init()
+    loop(_oww_model, _audio, _stream, _recognizer)

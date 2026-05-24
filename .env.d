@@ -14,7 +14,8 @@ RECEIPTS_DIR=receipts
 # Env variables for the backup part
 BACKUP_DIR=backups
 
-# Env variables for the PicoVoice SDK
-PICOVOICE_ACCESS_KEY=your-secret-api-key
-WAKE_WORD_FILE=Hey-Cookbook_en_raspberry-pi_v3_0_0.ppn
+# Env variables for the speech recognition
 MODEL_FILE=vosk-model-small-en-us-0.15
+# Wake word model: path to a .tflite file, or a built-in name (e.g. "alexa", "hey_jarvis")
+# Falls back to "alexa" if the file or name is not found
+WAKE_WORD_MODEL=wake_words/hey_cookbook.tflite

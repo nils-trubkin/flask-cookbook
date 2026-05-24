@@ -12,13 +12,13 @@ Python dependencies:
 - Flask
 - SQLite
 - Vosk (optional, for voice assistant)
-- Porcupine (optional, for voice assistant)
+- openWakeWord (optional, for voice assistant)
 - PyMuPDF (for receipt PDF processing)
 
 Components:
 - Web application to display the recipes (Flask)
 - Database to store recipes, ingredients, barcodes, and receipts (SQLite)
-- Assistant to listen to voice commands (Porcupine and Vosk)
+- Assistant to listen to voice commands (openWakeWord and Vosk)
 - Receipt scanner to extract items and prices from PDF receipts
 - Barcode-to-ingredient linking system for smart shopping
 
@@ -36,7 +36,8 @@ cd flask-cookbook
 sudo apt install python3 python3-pip python3-venv chromium-browser imagemagick dunst libnotify-bin unclutter xdotool dbus-x11 -y
 python3 -m venv venv
 . venv/bin/activate
-pip install -r requirements.txt
+grep -v '^openwakeword' requirements.txt | pip install -r /dev/stdin
+pip install --no-deps openwakeword==0.6.0
 cp .env.d .env
 make
 
@@ -48,7 +49,7 @@ sudo cp services/*.service /etc/systemd/system/
 # Enable kiosk web application
 sudo systemctl enable flaskapp.service
 
-# Enable voice assistant, requires free API key, explained below
+# Enable voice assistant (see below for configuration)
 sudo systemctl enable assistant.service
 
 # Kiosk autostart script
@@ -56,12 +57,15 @@ cp chromium-autostart.sh /var/lib/dietpi/dietpi-software/installed/
 chmod +x /var/lib/dietpi/dietpi-software/installed/chromium-autostart.sh
 
 ```
-Configure the voice assistant API key in `.env` file in project root, if you want to use the voice assistant
-The API key can be obtained (free for non-commercial use) from [PicoVoice](https://console.picovoice.ai/)
-```bash
-# .env
-PICOVOICE_ACCESS_KEY=<your-api-key>
-```
+The voice assistant uses [openWakeWord](https://github.com/dscripka/openWakeWord) for wake word detection.
+Pre-trained models are downloaded automatically on first run. Set `WAKE_WORD_MODEL` in `.env` to
+a path to a `.tflite` file or a built-in name (e.g. `alexa`, `hey_jarvis`). Falls back to `alexa`
+if the configured model is not found.
+
+`openwakeword==0.6.0` depends on `tflite-runtime` which has no Python 3.13+ wheel.
+The project uses the ONNX inference backend instead — `onnxruntime` is listed in
+`requirements.txt` and `openwakeword` must be installed with `--no-deps` to skip
+the `tflite-runtime` requirement.
 
 Configure boot to kiosk without desktop mode in dietpi-config. **Update the homepage URL to use your hostname instead of localhost:**
 ```bash
@@ -96,9 +100,8 @@ RECEIPTS_DIR=receipts               # Directory containing PDF receipts
 BACKUP_DIR=backups                  # Directory for ingredient barcode backups
 
 # Voice assistant (if enabled)
-PICOVOICE_ACCESS_KEY=<your-api-key>
-WAKE_WORD_FILE=Hey-Cookbook_en_raspberry-pi_v3_0_0.ppn
 MODEL_FILE=<optional-model-file>
+WAKE_WORD_MODEL=wake_words/hey_cookbook.tflite   # path or built-in name
 
 # Hue Bridge (optional, for voice-controlled lights)
 HUE_BRIDGE_IP=<bridge-ip>            # IP address of your Hue Bridge
@@ -110,12 +113,13 @@ WEATHER_URL=<full-url>               # URL to open for weather (e.g. yr.no)
 ```
 
 ## Wake word
-The wake word for the voice assistant is "Hey Cookbook", this can be changed in `.env` file in project root
-Custom word model file for Porcupine can be downloaded from [PicoVoice](https://console.picovoice.ai/) with a free account and placed in `wake_words` directory
-```bash
-# .env
-WAKE_WORD_FILE=<name-of-wake-word-file>
-```
+The wake word model is configured via the `WAKE_WORD_MODEL` environment variable.
+This can be:
+- A path to a `.tflite` file (e.g. `wake_words/hey_cookbook.tflite`)
+- A built-in openWakeWord model name (e.g. `alexa`, `hey_jarvis`, `hey_mycroft`)
+If the configured model is not found, the assistant falls back to the built-in `alexa` model.
+Custom models can be trained using the [official Colab notebook](https://colab.research.google.com/drive/1q1oe2zOyZp7UsB3jJiQ1IFn8z5YfjwEb?usp=sharing)
+and placed in the `wake_words` directory.
 
 ## Hue Bridge & Weather
 

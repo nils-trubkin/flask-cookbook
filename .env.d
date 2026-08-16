@@ -1,6 +1,5 @@
 # Server configuration
-HOSTNAME=your-hostname
-FLASK_PROTOCOL=http
+FLASK_URL=https://flask.local
 FLASK_HOST=0.0.0.0
 FLASK_PORT=8001
 FLASK_WORKERS=4

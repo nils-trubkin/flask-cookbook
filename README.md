@@ -70,8 +70,8 @@ the `tflite-runtime` requirement.
 Configure boot to kiosk without desktop mode in dietpi-config. **Update the homepage URL to use your hostname instead of localhost:**
 ```bash
 dietpi-config
-# Set homepage to: http://<your-hostname>:8001/list
-# Or if using HTTPS: https://<your-hostname>:8001/list
+# Set homepage to: http://<your-url>/grid
+# Or if using HTTPS: https://<your-url>/grid
 ```
 
 (Optionally) Configure boot speed boost in dietpi-config
@@ -84,8 +84,7 @@ Update the `.env` file in the project root with your settings:
 
 ```bash
 # Server configuration
-HOSTNAME=your-hostname              # Set to your device hostname or IP
-FLASK_PROTOCOL=http                 # Use 'https' if TLS is enabled
+FLASK_URL=your-url                  # Set to your device hostname or IP (https://flask.local)
 FLASK_HOST=0.0.0.0
 FLASK_PORT=8001
 FLASK_WORKERS=4

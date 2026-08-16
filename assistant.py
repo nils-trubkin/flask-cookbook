@@ -23,9 +23,7 @@ os.environ["DISPLAY"] = ":0.0"
 hue = HueBridge()
 weather = Weather()
 MODEL_FILE = os.getenv("MODEL_FILE")
-FLASK_PORT = os.getenv("FLASK_PORT")
-FLASK_PROTOCOL = os.getenv("FLASK_PROTOCOL")
-HOSTNAME = os.getenv("HOSTNAME")
+FLASK_URL = os.getenv("FLASK_URL")
 WAKE_WORD_MODEL = os.getenv("WAKE_WORD_MODEL")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -176,7 +174,7 @@ def parse(result: str):
         "recipes" in result or "recipe" in result
     ):
         print("Showing all recipes")
-        xdg_open(f"{FLASK_PROTOCOL}://{HOSTNAME}:{FLASK_PORT}/grid")
+        xdg_open(f"{FLASK_URL}/grid")
     elif "number" in result:
         # Extract the first matching word from the result
 
@@ -186,7 +184,7 @@ def parse(result: str):
             print(f"Could not convert '{result}' to a number")
         print(f"Showing recipe number {number}")
         # Execute in the background
-        xdg_open(f"{FLASK_PROTOCOL}://{HOSTNAME}:{FLASK_PORT}/recipes/{number}")
+        xdg_open(f"{FLASK_URL}/recipes/{number}")
     elif "scroll" in result:
         if "up" in result:
             print("Scrolling up")
@@ -199,7 +197,7 @@ def parse(result: str):
         try:
             duration = w2n.word_to_num(result)
             response = requests.post(
-                f"{FLASK_PROTOCOL}://{HOSTNAME}:{FLASK_PORT}/commands",
+                f"{FLASK_URL}/commands",
                 json={"action": "timer", "duration": duration},
                 timeout=5,
             )

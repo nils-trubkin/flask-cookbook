@@ -4,7 +4,7 @@ TEMPLATES_DIR = templates
 GENERATED_DIR = $(TEMPLATES_DIR)/recipes
 STATIC_DIR = static
 
-PYTHON = python3
+PYTHON = venv/bin/python3
 SCRIPT = generate_recipe.py
 TEMPLATE = $(TEMPLATES_DIR)/recipe.html
 

@@ -23,10 +23,8 @@ DATABASE_PATH = os.path.join(BASE_DIR, "recipes.db")
 
 load_dotenv()
 RECIPES_DIR = os.getenv("RECIPES_DIR")
-FLASK_PROTOCOL = os.getenv("FLASK_PROTOCOL")
-HOSTNAME = os.getenv("HOSTNAME")
+FLASK_URL = os.getenv("FLASK_URL")
 FLASK_HOST = os.getenv("FLASK_HOST")
-FLASK_PORT = os.getenv("FLASK_PORT")
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DATABASE_PATH}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -226,7 +224,7 @@ def view_recipe(recipe):
         recipe = sorted([recipe.file_path for recipe in Recipes.query.all()])[
             int(recipe) - 1
         ].split(".")[0]
-    return xdg_open(f"{FLASK_PROTOCOL}://{HOSTNAME}:{FLASK_PORT}/view/{recipe}")
+    return xdg_open(f"{FLASK_URL}/view/{recipe}")
 
 
 @app.route("/api/recipes", methods=["POST"])
@@ -235,7 +233,7 @@ def view_recipe_api():
     name = request.args.get("name")
     if not name:
         return error("Recipe name is required")
-    return xdg_open(f"{FLASK_PROTOCOL}://{HOSTNAME}:{FLASK_PORT}/view/{name}")
+    return xdg_open(f"{FLASK_URL}/view/{name}")
 
 
 @app.route("/view/<recipe>")
